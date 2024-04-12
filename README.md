@@ -39,16 +39,15 @@ In the root directory of NimbusRT:
 ```shell
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build .
+cmake ..
+cmake --build . --config Release
 ```
 
 ### Python Installation
 
 In the root directory:
 ```shell
-cd Python
-pip install -e .
+pip install -e Python
 ```
 
 ## Running
@@ -66,7 +65,7 @@ Journal paper:
 }
 ```
 Conference paper:
-```
+```bibtex
 @article{vaara2024ray,
   title={A Ray Launching Approach for Computing Exact Paths with Point Clouds},
   author={Vaara, Niklas and Sangi, Pekka and L{\'o}pez, Miguel Bordallo and Heikkil{\"a}, Janne},
