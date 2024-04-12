@@ -1,0 +1,10 @@
+.vs
+.vscode
+out
+build*
+*.egg-info
+__pycache__
+.ipynb_checkpoints
+*.pyd
+PtxData.cpp
+Example/Output
