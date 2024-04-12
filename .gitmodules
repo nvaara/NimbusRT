@@ -1,0 +1,3 @@
+[submodule "Dependencies/pybind11"]
+	path = Dependencies/pybind11
+	url = https://github.com/nvaara/pybind11
