@@ -52,7 +52,7 @@ pip install -e Python
 
 ## Running
 
-See Examples folder for demo scripts.
+See Examples folder for demo scripts. The point clouds can be downloaded [here](https://drive.google.com/drive/folders/1X8U4hZziVi5zpp93a1eYDvXLJL8103ZY).
 
 ## Citation
 Journal paper:
@@ -66,7 +66,7 @@ Journal paper:
 ```
 Conference paper:
 ```bibtex
-@article{vaara2024ray,
+@article{vaara2024ray2,
   title={A Ray Launching Approach for Computing Exact Paths with Point Clouds},
   author={Vaara, Niklas and Sangi, Pekka and L{\'o}pez, Miguel Bordallo and Heikkil{\"a}, Janne},
   journal={arXiv preprint arXiv:2402.13747},
