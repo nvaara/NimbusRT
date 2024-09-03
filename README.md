@@ -66,10 +66,11 @@ Journal paper:
 ```
 Conference paper:
 ```bibtex
-@article{vaara2024ray2,
-  title={A Ray Launching Approach for Computing Exact Paths with Point Clouds},
-  author={Vaara, Niklas and Sangi, Pekka and L{\'o}pez, Miguel Bordallo and Heikkil{\"a}, Janne},
-  journal={arXiv preprint arXiv:2402.13747},
-  year={2024}
-}
+@inproceedings{vaara2024ray2,
+  author={Vaara, Niklas and Sangi, Pekka and López, Miguel Bordallo and Heikkilä, Janne},
+  booktitle={2024 IEEE International Conference on Acoustics, Speech, and Signal Processing Workshops (ICASSPW)}, 
+  title={A Ray Launching Approach for Computing Exact Paths with Point Clouds}, 
+  year={2024},
+  pages={800-804},
+  doi={10.1109/ICASSPW62465.2024.10626030}}
 ```
