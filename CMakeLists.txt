@@ -7,3 +7,4 @@ set(CMAKE_CUDA_STANDARD 17)
 
 add_subdirectory(Dependencies)
 add_subdirectory(_C)
+add_subdirectory(Nimbus)
