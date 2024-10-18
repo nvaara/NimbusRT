@@ -3,7 +3,7 @@ from sionna import rt as srt
 from sionna.rt.solver_paths import PathsTmpData as SionnaPathsTmpData
 from plyfile import PlyData
 import numpy as np
-from ._C import NativeScene, NativeSionnaPathData
+from ._C import NativeScene
 from .params import RTParams
 from . import itu
 
@@ -20,11 +20,11 @@ class Scene():
 
     def __init__(self, dtype=tf.complex64):
         self._sionna_scene = srt.Scene("__empty__", dtype=dtype)
+        self._sionna_scene._clear()
         self._itu_materials = itu.get_materials(dtype)
         self._sionna_scene.radio_material_callable = self
 
     def set_triangle_mesh(self, mesh, voxel_size=0.0625, use_face_normals=False):
-        self._sionna_scene._clear()
         if isinstance(mesh, str):
             ply_data = PlyData.read(mesh)
             self._geometry_path = mesh
@@ -39,7 +39,6 @@ class Scene():
         return self._native_scene._set_triangle_mesh(vertices, normals, vertex_indices, face_properties, voxel_size, use_face_normals)
 
     def set_point_cloud(self, cloud, voxel_size=0.0625, aabb_bias=0.01):
-        self._sionna_scene._clear()
         if isinstance(cloud, str):
             ply_data = PlyData.read(cloud)
             self._geometry_path = cloud
@@ -176,8 +175,7 @@ class Scene():
         self._sionna_scene.remove(name)
 
     def compute_paths(self, params: RTParams):
-        path_tuple = self.trace_paths(params)
-        return self.compute_fields(*path_tuple)
+        return self.compute_fields(self.trace_paths(params))
 
     def trace_paths(self, params: RTParams):
         txs = list(self.transmitters.values())

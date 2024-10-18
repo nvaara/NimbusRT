@@ -115,32 +115,12 @@ namespace Nimbus
 	PathStorage::SionnaPathData PathStorage::ToSionnaPathData()
 	{
 		SionnaPathData sionnaData{};
-		//size_t interactionBufferElements = m_MaxNumInteractions * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths;
-		//size_t interactionBufferElementsIncident = (m_MaxNumInteractions+1) * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths;
-		//size_t pathBufferElements = m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths;
-		//
+
 		sionnaData.transmitters = m_Transmitters;
 		sionnaData.receivers = m_Receivers;
 		sionnaData.maxNumIa = m_MaxNumInteractions;
 		sionnaData.maxLinkPaths = m_MaxLinkPaths;
 		sionnaData.ReservePaths();
-		//
-		//sionnaData.interactions.resize(interactionBufferElements);
-		//sionnaData.normals.resize(interactionBufferElements);
-		//sionnaData.materials.resize(interactionBufferElements);
-		//sionnaData.incidentRays.resize(interactionBufferElementsIncident);
-		//sionnaData.deflectedRays.resize(interactionBufferElements);
-		//
-		//sionnaData.timeDelays.resize(pathBufferElements, -1.0f);
-		//sionnaData.totalDistance.resize(pathBufferElements, -1.0f);
-		//sionnaData.mask.resize(pathBufferElements, 0u);
-		//sionnaData.kTx.resize(pathBufferElements);
-		//sionnaData.kRx.resize(pathBufferElements);
-		//
-		//sionnaData.aodElevation.resize(pathBufferElements);
-		//sionnaData.aodAzimuth.resize(pathBufferElements);
-		//sionnaData.aoaElevation.resize(pathBufferElements);
-		//sionnaData.aoaAzimuth.resize(pathBufferElements);
 
 		uint32_t numTotalPaths = static_cast<uint32_t>(m_TxIDs.size());
 		for (uint32_t pathIndex = 0; pathIndex < numTotalPaths; ++pathIndex)
@@ -201,6 +181,9 @@ namespace Nimbus
 			return PathStorage::SionnaPathType::Scattered;
 		case PathType::RIS:
 			return PathStorage::SionnaPathType::RIS;
+		default:
+			assert(false);
+			return PathStorage::SionnaPathType::Specular;
 		}
 	}
 }

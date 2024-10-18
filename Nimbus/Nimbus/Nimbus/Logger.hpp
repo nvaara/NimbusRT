@@ -19,7 +19,7 @@ namespace Nimbus
 		}
 	};
 }
-#define _DEBUG
+
 #ifdef _DEBUG
 #define LOGGING_ENABLED
 #endif

@@ -23,14 +23,9 @@ if __name__ == "__main__":
     scene.rx_array = scene.tx_array
     scene.add(Transmitter(name="tx", position=[5.79, -2.93, 1.82]))
     scene.add(Receiver(name="rx", position=[8.7, 1.15, 0.95]))
-    print("Compute paths")
-    path_tuple = scene.trace_paths(params)
-    print("Compute fields")
-    result_paths = scene.compute_fields(path_tuple)
+    result_paths = scene.compute_paths(params)
     result_paths.normalize_delays = False
     a, tau = result_paths.cir()
-    print(result_paths.types)
-    print(result_paths.objects)
     c = a.numpy().flatten()
     t = tau.numpy().flatten()
     valid_paths = np.nonzero(t > 0.0)
