@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 if __name__ == "__main__":
     scene = nrt.Scene()
     scene.set_triangle_mesh("Data/CorridorSyntheticSimple_TR.ply", use_face_normals=True)
-    scene.set_itu_material_for_label(0, "itu_plasterboard")
+    for mat_label in range(len(scene.radio_materials)):
+        scene.set_itu_material_for_label(mat_label, "itu_plasterboard")
     scene.frequency = 60e9
     params = nrt.RTParams(max_num_interactions=2,
                           scattering=False,

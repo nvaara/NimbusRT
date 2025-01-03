@@ -220,7 +220,11 @@ class Scene():
 
     def _init_materials(self, material_count):
         for i in range(material_count):
-            self._sionna_scene.add(srt.RadioMaterial(str(i)))
+            str_i = str(i)
+            self._sionna_scene.add(srt.RadioMaterial(str_i))
+            self._sionna_scene._scene_objects[str(i)] = srt.SceneObject(str_i) #Workaround for object velocity.
+            self._sionna_scene._scene_objects[str(i)].object_id = i
+            self._sionna_scene._scene_objects[str(i)]._radio_material = self._sionna_scene.get(str_i)
 
     def _get_point_cloud(self, ply_data: PlyData):
             types = [
@@ -278,7 +282,7 @@ class Scene():
         face_properties = np.empty(triangle_indices.shape[0], dtype=[("nx", "f4"), ("ny", "f4"), ("nz", "f4"), ("label", "u4"), ("material", "u4")])
         face_properties["nx"], face_properties["ny"], face_properties["nz"] = face_normals[:, 0], face_normals[:, 1], face_normals[:, 2]
         face_properties["label"] = face_data["label"] if "label" in face_data else computed_labels
-        face_properties["material"] = face_data["material"] if "material" in face_data else np.zeros(triangle_indices.shape[0], dtype=np.uint32)
+        face_properties["material"] = face_data["material"] if "material" in face_data else face_properties["label"]
 
         return vertices, normals, triangle_indices, face_properties
 
