@@ -9,6 +9,8 @@ set(CXX_SOURCES
 
 pybind11_add_module(_C ${CXX_SOURCES})
 target_link_libraries(_C PRIVATE Nimbus)
+set_property(TARGET _C PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 add_custom_command(TARGET _C
                   POST_BUILD
                   COMMAND ${CMAKE_COMMAND} -E copy
