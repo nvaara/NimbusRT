@@ -3,6 +3,7 @@
 #include "KernelData.hpp"
 #include "Logger.hpp"
 #include <unordered_map>
+#include <memory>
 
 namespace Nimbus
 {

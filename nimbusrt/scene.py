@@ -3,9 +3,10 @@ from sionna import rt as srt
 from sionna.rt.solver_paths import PathsTmpData as SionnaPathsTmpData
 from plyfile import PlyData
 import numpy as np
-from ._C import NativeScene
 from .params import RTParams
+from ._C import NativeScene
 from . import itu
+
 
 class Scene():
     _instance = None

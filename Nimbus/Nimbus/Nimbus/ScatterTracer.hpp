@@ -1,6 +1,7 @@
 #pragma once
 #include "Nimbus/PathStorage.hpp"
 #include "PointCloudEnvironment.hpp"
+#include <memory>
 
 namespace Nimbus
 {

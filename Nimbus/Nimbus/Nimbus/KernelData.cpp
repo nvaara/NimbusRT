@@ -2,16 +2,18 @@
 #include "Profiler.hpp"
 #include <optix.h>
 #include <array>
+#include <memory>
 
 extern "C"
 {
-    unsigned char Ptx_Primitive[];
-    unsigned char Ptx_Triangle[];
-    unsigned char Ptx_Trace[];
-    unsigned char Ptx_Visibility[];
-    unsigned char Ptx_Refine[];
-    unsigned char Ptx_Coverage[];
+    extern unsigned char Ptx_Primitive[];
+    extern unsigned char Ptx_Triangle[];
+    extern unsigned char Ptx_Trace[];
+    extern unsigned char Ptx_Visibility[];
+    extern unsigned char Ptx_Refine[];
+    extern unsigned char Ptx_Coverage[];
 }
+
 
 namespace Nimbus
 {
