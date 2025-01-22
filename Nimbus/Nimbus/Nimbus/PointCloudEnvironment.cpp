@@ -8,18 +8,23 @@
 namespace Nimbus
 {
 	PointCloudEnvironment::PointCloudEnvironment()
-        : m_Aabb()
+        : m_VoxelSize(0.0f)
+        , m_Aabb()
         , m_VoxelWorldInfo()
         , m_IeCount(0u)
         , m_PointCount(0u)
+        , m_EdgeCount(0u)
 	{
 	}
 
-	bool PointCloudEnvironment::Init(const PointData* points, size_t numPoints, float voxelSize, float aabbBias)
+	bool PointCloudEnvironment::Init(const PointData* points, size_t numPoints, const EdgeData* edges, size_t numEdges, float voxelSize, float aabbBias)
 	{
-		if (numPoints <= 1u)
-			return false;
-
+        m_VoxelSize = voxelSize;
+        if (numPoints <= 1u)
+        {
+            LOG("Scene does not contain points.");
+            return false;
+        }
         std::vector<PointNode> pointNodes = LoadPoints(points, numPoints);
         
         if (!ComputeVoxelWorld(voxelSize))
@@ -33,6 +38,12 @@ namespace Nimbus
         if (!GenerateRayTracingData(pointNodes, voxelNodeIndices, aabbBias))
         {
             LOG("Failed to generate ray tracing data.");
+            return false;
+        }
+
+        if (edges && !ProcessEdges(edges, numEdges))
+        {
+            LOG("Failed to process edges.");
             return false;
         }
         return true;
@@ -179,5 +190,12 @@ namespace Nimbus
         m_AccelerationStructure = AccelerationStructure::CreateFromAabbs(m_PrimitiveBuffer, m_IeCount);
         pointCountBuffer.Download(&m_PointCount, 1);
         return m_AccelerationStructure.IsValid();
+    }
+
+    bool PointCloudEnvironment::ProcessEdges(const EdgeData* edges, size_t numEdges)
+    {
+        m_EdgeCount = static_cast<uint32_t>(numEdges);
+        m_EdgeBuffer = DeviceBuffer::Create(edges, numEdges);
+        return m_EdgeBuffer.GetRawHandle() != CUdeviceptr(0);
     }
 }

@@ -1,6 +1,9 @@
 import tensorflow as tf
 from sionna import rt as srt
 from sionna.rt.solver_paths import PathsTmpData as SionnaPathsTmpData
+from .solver_paths import NimbusSolverPaths
+from sionna.constants import PI
+
 from plyfile import PlyData
 import numpy as np
 from .params import RTParams
@@ -22,6 +25,7 @@ class Scene():
     def __init__(self, dtype=tf.complex64):
         self._sionna_scene = srt.Scene("__empty__", dtype=dtype)
         self._sionna_scene._clear()
+        #self._sionna_scene._solver_paths = NimbusSolverPaths(self._sionna_scene, dtype=dtype)
         self._itu_materials = itu.get_materials(dtype)
         self._sionna_scene.radio_material_callable = self
 
@@ -129,9 +133,12 @@ class Scene():
     def radio_materials(self):
         return self._sionna_scene.radio_materials
 
-    def set_itu_material_for_label(self, label_index, itu_name):
+    def set_itu_material_for_label(self, label_index, itu_name, scattering_coefficient=0.0, xpd_coefficient=0.0, scattering_pattern=None):
         itu_mat = self._itu_materials[itu_name]
         label_mat = self._sionna_scene.radio_materials[str(label_index)]
+        label_mat.scattering_coefficient = scattering_coefficient
+        label_mat.xpd_coefficient = xpd_coefficient
+        label_mat.scattering_pattern = srt.LambertianPattern(dtype=self.dtype) if scattering_pattern is None else scattering_pattern
         label_mat.frequency_update_callback = itu_mat.frequency_update_callback
         label_mat.frequency_update()
 
@@ -246,7 +253,27 @@ class Scene():
                     raise Exception(f"Field '{t[0]}' not found in point cloud.")
                 point_cloud[t[0]] = vertex[t[0]]
             
-            return point_cloud
+            edge_result = None
+            if "edge" in ply_data:
+                edge = ply_data["edge"]
+                edge_types = [
+                    ('start_x', 'f4'), ('start_y', 'f4'), ('start_z', 'f4'),
+                    ('end_x', 'f4'), ('end_y', 'f4'), ('end_z', 'f4'),
+                    ('normal1_x', 'f4'), ('normal1_y', 'f4'), ('normal1_z', 'f4'),
+                    ('normal2_x', 'f4'), ('normal2_y', 'f4'), ('normal2_z', 'f4'),
+                    ('material1', 'u4'), ('material2', 'u4'),
+                    ('edge_id')
+                ]
+                
+                num_edges = edge['start_x'].shape[0]
+                edge_result = np.empty(num_edges, dtype=types)
+                edge_result['edge_id'] = np.arange(num_edges)
+                for te in edge_types:
+                    if not te[0] is 'edge_id' and not te[0] in edge:
+                        raise Exception(f"Field '{te[0]}' not found in edge elements.")
+                    edge_result[te[0]] = edge[te[0]]
+
+            return point_cloud, edge_result
 
     def _get_triangle_mesh(self, ply_data: PlyData):
         ply_vertex_data = ply_data['vertex']
@@ -295,12 +322,18 @@ class Scene():
         dif_paths = srt.Paths(sources=sources, targets=targets, scene=self._sionna_scene)
         sct_paths = srt.Paths(sources=sources, targets=targets, scene=self._sionna_scene)
         ris_paths = srt.Paths(sources=sources, targets=targets, scene=self._sionna_scene)
-        
+
+        tmp_ref_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
+        tmp_dif_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
+        tmp_sct_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
+        tmp_ris_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
+
         ref_paths.types = srt.Paths.SPECULAR
         dif_paths.types = srt.Paths.DIFFRACTED
         sct_paths.types = srt.Paths.SCATTERED
         ris_paths.types = srt.Paths.RIS
 
+        #Spec
         ref_paths.vertices = tf.convert_to_tensor(sionna_path_data.vertices(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         ref_paths.objects = tf.convert_to_tensor(sionna_path_data.objects(srt.Paths.SPECULAR), dtype=tf.int32)
         ref_paths.mask = tf.convert_to_tensor(sionna_path_data.mask(srt.Paths.SPECULAR), dtype=tf.bool)
@@ -310,16 +343,54 @@ class Scene():
         ref_paths.phi_r = tf.convert_to_tensor(sionna_path_data.phi_r(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         ref_paths.tau = tf.convert_to_tensor(sionna_path_data.tau(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
 
-        tmp_ref_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
-        tmp_dif_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
-        tmp_sct_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
-        tmp_ris_paths = SionnaPathsTmpData(sources=sources, targets=targets, dtype=self._sionna_scene.dtype)
-
         tmp_ref_paths.normals = tf.convert_to_tensor(sionna_path_data.normals(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         tmp_ref_paths.k_tx = tf.convert_to_tensor(sionna_path_data.k_tx(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         tmp_ref_paths.k_rx = tf.convert_to_tensor(sionna_path_data.k_rx(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         tmp_ref_paths.total_distance = tf.convert_to_tensor(sionna_path_data.total_distance(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         tmp_ref_paths.k_i = tf.convert_to_tensor(sionna_path_data.k_i(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
         tmp_ref_paths.k_r = tf.convert_to_tensor(sionna_path_data.k_r(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
+
+        #Scat
+        sct_paths.vertices = tf.convert_to_tensor(sionna_path_data.vertices(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        sct_paths.objects = tf.convert_to_tensor(sionna_path_data.objects(srt.Paths.SCATTERED), dtype=tf.int32)
+        sct_paths.mask = tf.convert_to_tensor(sionna_path_data.mask(srt.Paths.SCATTERED), dtype=tf.bool)
+        sct_paths.theta_t = tf.convert_to_tensor(sionna_path_data.theta_t(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        sct_paths.theta_r = tf.convert_to_tensor(sionna_path_data.theta_r(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        sct_paths.phi_t = tf.convert_to_tensor(sionna_path_data.phi_t(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        sct_paths.phi_r = tf.convert_to_tensor(sionna_path_data.phi_r(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        sct_paths.tau = tf.convert_to_tensor(sionna_path_data.tau(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+
+        tmp_sct_paths.normals = tf.convert_to_tensor(sionna_path_data.normals(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.k_tx = tf.convert_to_tensor(sionna_path_data.k_tx(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.k_rx = tf.convert_to_tensor(sionna_path_data.k_rx(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.total_distance = tf.convert_to_tensor(sionna_path_data.total_distance(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.k_i = tf.convert_to_tensor(sionna_path_data.k_i(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.k_r = tf.convert_to_tensor(sionna_path_data.k_r(srt.Paths.SCATTERED), dtype=tf.complex64.real_dtype)
+        tmp_sct_paths.num_samples = 1.0 #To Nullify Sionnas Probability-based scaling
+        tmp_sct_paths.scat_keep_prob = 4 * tf.cast(PI, self.dtype.real_dtype) #To Nullify Sionnas Probability-based scaling
+        tmp_sct_paths.scat_last_objects = tf.convert_to_tensor(sionna_path_data.scat_last_objects(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_last_vertices = tf.convert_to_tensor(sionna_path_data.scat_last_vertices(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_last_k_i = tf.convert_to_tensor(sionna_path_data.scat_last_k_i(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_k_s = tf.convert_to_tensor(sionna_path_data.scat_k_s(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_last_normals = tf.convert_to_tensor(sionna_path_data.scat_last_normals(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_src_2_last_int_dist = tf.convert_to_tensor(sionna_path_data.scat_src_2_last_int_dist(srt.Paths.SCATTERED))
+        tmp_sct_paths.scat_2_target_dist = tf.convert_to_tensor(sionna_path_data.scat_2_target_dist(srt.Paths.SCATTERED))
+        #Due to our discrete, deterministic area-based scattering, we apply the appropriate scaling cos(theta_i)*dA into scat_2_target_dist
+        
+        #Diffraction
+        #dif_paths.objects = tf.range(0, dif_paths.mask.shape[2])
+        #self._sionna_scene.solver_paths.wedges_e_hat
+        '''
+        _wedges_e_hat needs to be modified
+        _wedges_normals is the normals
+
+        objects [num_target, num_sources will be used to index 
+        _wedges_objects will contain the object indices [num_targets, num_sources, 2]
+
+        wedge_indices = path.objects
+
+        normals = self._wedges
+        '''
+        #RIS
 
         return ref_paths, dif_paths, sct_paths, ris_paths, tmp_ref_paths, tmp_dif_paths, tmp_sct_paths, tmp_ris_paths

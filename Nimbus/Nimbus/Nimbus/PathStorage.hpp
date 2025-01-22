@@ -76,14 +76,17 @@ namespace Nimbus
 
 		struct SionnaPathTypeData
 		{
-			void Reserve(uint32_t maxNumInteractions, size_t numReceivers, size_t numTransmitters, uint32_t maxLinkPaths)
+			void Reserve(uint32_t maxNumInteractions, size_t numReceivers, size_t numTransmitters, uint32_t maxLinkPaths, SionnaPathType pathType)
 			{
+				if (pathType == SionnaPathType::Diffracted)
+					maxNumInteractions = 1u;
+
 				size_t interactionBufferElements = maxNumInteractions * numReceivers * numTransmitters * maxLinkPaths;
 				size_t interactionBufferElementsIncident = (maxNumInteractions + 1) * numReceivers * numTransmitters * maxLinkPaths;
 				size_t pathBufferElements = numReceivers * numTransmitters * maxLinkPaths;
 
 				interactions.resize(interactionBufferElements);
-				normals.resize(interactionBufferElements);
+				normals.resize(interactionBufferElements * (pathType == SionnaPathType::Diffracted ? 2u : 1u));
 				materials.resize(interactionBufferElements);
 				incidentRays.resize(interactionBufferElementsIncident);
 				deflectedRays.resize(interactionBufferElements);
@@ -98,6 +101,27 @@ namespace Nimbus
 				aodAzimuth.resize(pathBufferElements);
 				aoaElevation.resize(pathBufferElements);
 				aoaAzimuth.resize(pathBufferElements);
+
+				switch (pathType)
+				{
+				case SionnaPathType::Scattered:
+				{
+					scattering.lastObjects.resize(pathBufferElements);
+					scattering.lastVertices.resize(pathBufferElements);
+					scattering.lastNormal.resize(pathBufferElements);
+					scattering.lastIncident.resize(pathBufferElements);
+					scattering.lastDeflected.resize(pathBufferElements);
+					scattering.distToLastIa.resize(pathBufferElements);
+					scattering.distFromLastIaToRx.resize(pathBufferElements);
+					break;
+				}
+				case SionnaPathType::Diffracted:
+				{
+					break;
+				}
+				default:
+					break;
+				}
 			}
 
 			std::vector<glm::vec3> interactions;
@@ -114,6 +138,24 @@ namespace Nimbus
 			std::vector<float> aodAzimuth;
 			std::vector<float> aoaElevation;
 			std::vector<float> aoaAzimuth;
+
+			//Scattering specific
+			struct 
+			{
+				std::vector<uint32_t> lastObjects;
+				std::vector<glm::vec3> lastVertices;
+				std::vector<glm::vec3> lastNormal;
+				std::vector<glm::vec3> lastIncident;
+				std::vector<glm::vec3> lastDeflected;
+				std::vector<float> distToLastIa;
+				std::vector<float> distFromLastIaToRx;
+
+			} scattering;
+			//Diffraction specific
+			struct
+			{
+				std::vector<glm::uvec2> materials;
+			} diffraction;
 		};
 
 		struct SionnaPathData
@@ -122,7 +164,7 @@ namespace Nimbus
 			void ReservePaths()
 			{
 				for (uint32_t i = 0; i < PathTypeCount; ++i)
-					paths[i].Reserve(maxNumIa, receivers.size(), transmitters.size(), maxLinkPaths[i]);
+					paths[i].Reserve(maxNumIa, receivers.size(), transmitters.size(), maxLinkPaths[i], static_cast<SionnaPathType>(i));
 			}
 			uint32_t maxNumIa;
 			std::vector<glm::vec3> transmitters;
@@ -132,7 +174,7 @@ namespace Nimbus
 		};
 
 		PathData ToPathData();
-		SionnaPathData ToSionnaPathData();
+		SionnaPathData ToSionnaPathData(float voxelSize);
 		SionnaPathType GetSionnaPathType(PathType type);
 
 	private:

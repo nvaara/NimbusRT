@@ -112,9 +112,10 @@ namespace Nimbus
 		return data;
 	}
 
-	PathStorage::SionnaPathData PathStorage::ToSionnaPathData()
+	PathStorage::SionnaPathData PathStorage::ToSionnaPathData(float voxelSize)
 	{
 		SionnaPathData sionnaData{};
+		float voxelArea = voxelSize * voxelSize;
 
 		sionnaData.transmitters = m_Transmitters;
 		sionnaData.receivers = m_Receivers;
@@ -125,7 +126,8 @@ namespace Nimbus
 		uint32_t numTotalPaths = static_cast<uint32_t>(m_TxIDs.size());
 		for (uint32_t pathIndex = 0; pathIndex < numTotalPaths; ++pathIndex)
 		{
-			uint32_t typeIndex = static_cast<uint32_t>(GetSionnaPathType(m_PathTypes[pathIndex]));
+			SionnaPathType pathType = GetSionnaPathType(m_PathTypes[pathIndex]);
+			uint32_t typeIndex = static_cast<uint32_t>(pathType);
 			uint32_t txID = m_TxIDs[pathIndex];
 			uint32_t rxID = m_RxIDs[pathIndex];
 			glm::vec3 tx = m_Transmitters[txID];
@@ -136,6 +138,7 @@ namespace Nimbus
 			size_t pathOffset = --m_PathCounts[rxID * m_Transmitters.size() + txID][typeIndex];
 			size_t txOffset = txID * m_MaxLinkPaths[typeIndex];
 			size_t rxOffset = rxID * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+			size_t diffractionOffset = (pathType == SionnaPathType::Diffracted ? 2u : 1u);
 
 			for (uint32_t ia = 0; ia < m_MaxNumInteractions; ++ia)
 			{
@@ -144,7 +147,12 @@ namespace Nimbus
 
 				glm::vec3 iaPoint = m_InteractionData[ia].interactions[pathIndex];
 				sionnaData.paths[typeIndex].interactions[pathIaIndex] = iaPoint;
-				sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
+				if (pathType == SionnaPathType::Diffracted)
+				{
+					sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
+				}
+				else
+					sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
 				sionnaData.paths[typeIndex].materials[pathIaIndex] = m_InteractionData[ia].materials[pathIndex];
 				sionnaData.paths[typeIndex].incidentRays[pathIaIndex] = ia > 0 ? glm::normalize(iaPoint - m_InteractionData[ia - 1].interactions[pathIndex]) : glm::normalize(iaPoint - tx);
 				sionnaData.paths[typeIndex].deflectedRays[pathIaIndex] = static_cast<int32_t>(ia) < static_cast<int32_t>(numInteractions) - 1 ? glm::normalize(m_InteractionData[ia + 1].interactions[pathIndex] - iaPoint) : glm::normalize(rx - iaPoint);
@@ -164,6 +172,38 @@ namespace Nimbus
 			sionnaData.paths[typeIndex].aodAzimuth[pathDataIndex] = glm::atan(sionnaData.paths[typeIndex].kTx[pathDataIndex].y, sionnaData.paths[typeIndex].kTx[pathDataIndex].x);
 			sionnaData.paths[typeIndex].aoaElevation[pathDataIndex] = glm::acos(sionnaData.paths[typeIndex].kRx[pathDataIndex].z);
 			sionnaData.paths[typeIndex].aoaAzimuth[pathDataIndex] = glm::atan(sionnaData.paths[typeIndex].kRx[pathDataIndex].y, sionnaData.paths[typeIndex].kRx[pathDataIndex].x);
+
+			switch (pathType)
+			{
+			case SionnaPathType::Scattered:
+			{
+				sionnaData.paths[typeIndex].scattering.lastObjects[pathDataIndex] = m_InteractionData[numInteractions - 1].materials[pathIndex];
+				sionnaData.paths[typeIndex].scattering.lastVertices[pathDataIndex] = m_InteractionData[numInteractions - 1].interactions[pathIndex];
+				sionnaData.paths[typeIndex].scattering.lastNormal[pathDataIndex] = m_InteractionData[numInteractions - 1].normals[pathIndex];
+				
+				size_t iaOffset = (numInteractions - 1) * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+				size_t pathIaIndex = iaOffset + rxOffset + txOffset + pathOffset;
+				sionnaData.paths[typeIndex].scattering.lastIncident[pathDataIndex] = sionnaData.paths[typeIndex].incidentRays[pathIaIndex];
+				sionnaData.paths[typeIndex].scattering.lastDeflected[pathDataIndex] = sionnaData.paths[typeIndex].deflectedRays[pathIaIndex];
+
+				glm::vec3 lastIncident = sionnaData.paths[typeIndex].scattering.lastIncident[pathDataIndex];
+				glm::vec3 lastNormal = sionnaData.paths[typeIndex].scattering.lastNormal[pathDataIndex];
+				float scaling = glm::max(glm::sqrt(glm::abs(glm::dot(lastNormal, lastIncident)) * voxelArea), 1e-6f);
+				float totalDistance = sionnaData.paths[typeIndex].totalDistance[pathDataIndex];
+				sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex] = glm::length(m_InteractionData[numInteractions - 1].interactions[pathIndex] - rx) / scaling;
+				sionnaData.paths[typeIndex].scattering.distToLastIa[pathDataIndex] = (totalDistance - sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex]);
+				break;
+			}
+			case SionnaPathType::Diffracted:
+			{
+
+				break;
+			}
+			default:
+			{
+				break;
+			}
+			}
 		}
 		return sionnaData;
 	}

@@ -20,10 +20,13 @@ namespace Nimbus
 				  float voxelSize,
 				  bool useFaceNormals);
 
+		float GetVoxelSize() const override { return m_VoxelSize; }
 		Type GetType() const override { return Type::TriangleMesh; }
 		EnvironmentData GetGpuEnvironmentData() const override;
 		uint32_t GetRtPointCount() const override { return m_RtPointCount; }
 		const Aabb& GetAabb() const override { return m_Aabb; }
+		uint32_t GetManualEdgeCount() const { return 0u; }
+		const DeviceBuffer& GetEdgeBuffer() const override { return m_EdgeBuffer; }
 
 		void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 		void DetermineLosPaths(const DeviceBuffer& params, const glm::uvec3& dims) const override;
@@ -45,6 +48,7 @@ namespace Nimbus
 							 size_t numFaces);
 
 	private:
+		float m_VoxelSize;
 		bool m_UseFaceNormals;
 		Aabb m_Aabb;
 		VoxelWorldInfo m_VoxelWorldInfo;
@@ -56,5 +60,6 @@ namespace Nimbus
 		DeviceBuffer m_FaceBuffer;
 		DeviceBuffer m_VoxelToRtPointIndexMapBuffer;
 		AccelerationStructure m_AccelerationStructure;
+		DeviceBuffer m_EdgeBuffer;
 	};
 }

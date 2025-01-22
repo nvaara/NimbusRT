@@ -14,10 +14,15 @@ namespace Nimbus
 		};
 
 		virtual ~Environment() = default;
+		
+		virtual float GetVoxelSize() const = 0;
 		virtual Type GetType() const = 0;
 		virtual EnvironmentData GetGpuEnvironmentData() const = 0;
 		virtual uint32_t GetRtPointCount() const = 0;
 		virtual const Aabb& GetAabb() const = 0;
+		bool IsManualEdge() const { return GetManualEdgeCount() > 0u; }
+		virtual uint32_t GetManualEdgeCount() const = 0;
+		virtual const DeviceBuffer& GetEdgeBuffer() const = 0;
 
 		virtual void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const = 0;
 		virtual void DetermineLosPaths(const DeviceBuffer& params, const glm::uvec3& dims) const = 0;

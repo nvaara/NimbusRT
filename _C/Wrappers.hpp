@@ -44,7 +44,7 @@ private:
 class SionnaPathWrapper
 {
 public:
-	SionnaPathWrapper(std::unique_ptr<Nimbus::PathStorage>&& path);
+	SionnaPathWrapper(float voxelSize, std::unique_ptr<Nimbus::PathStorage>&& path);
 	py::array_t<float, py::array::c_style> GetTransmitters() const;
 	py::array_t<float, py::array::c_style> GetReceivers() const;
 	py::array_t<float, py::array::c_style> GetInteractions(uint32_t sionnaPathType) const;
@@ -61,6 +61,14 @@ public:
 	py::array_t<float, py::array::c_style> GetAodAzimuth(uint32_t sionnaPathType) const;
 	py::array_t<float, py::array::c_style> GetAoaElevation(uint32_t sionnaPathType) const;
 	py::array_t<float, py::array::c_style> GetAoaAzimuth(uint32_t sionnaPathType) const;
+
+	py::array_t<int32_t, py::array::c_style> GetScatLastObjects(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatLastVertices(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatLastIncident(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatLastDeflected(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatLastNormals(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatDistToLastIa(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetScatDistFromLastIaToRx(uint32_t sionnaPathType) const;
 
 private:
 	Nimbus::PathStorage::SionnaPathData m_SionnaData;

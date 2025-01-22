@@ -16,6 +16,7 @@ PYBIND11_MODULE(_C, m)
 	m.doc() = "NimbusRT Python Interface.";
 	
 	PYBIND11_NUMPY_DTYPE(Nimbus::PointData, position.x, position.y, position.z, normal.x, normal.y, normal.z, label, material);
+	PYBIND11_NUMPY_DTYPE(Nimbus::EdgeData, start.x, start.y, start.z, end.x, end.y, end.z, normal1.x, normal1.y, normal1.z, normal2.x, normal2.y, normal2.z, material1, material2);
 	PYBIND11_NUMPY_DTYPE(Nimbus::Face, normal.x, normal.y, normal.z, label, material);
 	PYBIND11_NUMPY_DTYPE(glm::vec3, x, y, z);
 	PYBIND11_NUMPY_DTYPE(glm::uvec3, x, y, z);
@@ -79,7 +80,14 @@ PYBIND11_MODULE(_C, m)
 		.def("k_tx", &SionnaPathWrapper::GetKTx)
 		.def("k_rx", &SionnaPathWrapper::GetKRx)
 		.def("k_i", &SionnaPathWrapper::GetIncidentRays)
-		.def("k_r", &SionnaPathWrapper::GetDeflectedRays);
+		.def("k_r", &SionnaPathWrapper::GetDeflectedRays)
+		.def("scat_last_objects", &SionnaPathWrapper::GetScatLastObjects)
+		.def("scat_last_vertices", &SionnaPathWrapper::GetScatLastVertices)
+		.def("scat_last_k_i", &SionnaPathWrapper::GetScatLastIncident)
+		.def("scat_k_s", &SionnaPathWrapper::GetScatLastDeflected)
+		.def("scat_last_normals", &SionnaPathWrapper::GetScatLastNormals)
+		.def("scat_src_2_last_int_dist", &SionnaPathWrapper::GetScatDistToLastIa)
+		.def("scat_2_target_dist", &SionnaPathWrapper::GetScatDistFromLastIaToRx);
 
 	py::class_<Nimbus::ScatterTracingParams>(m, "NativeRTParams")
 		.def(py::init<>())

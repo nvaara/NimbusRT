@@ -8,7 +8,8 @@
 namespace Nimbus
 {
 	TriangleMeshEnvironment::TriangleMeshEnvironment()
-		: m_Aabb()
+		: m_VoxelSize(0.0f)
+		, m_Aabb()
 		, m_VoxelWorldInfo()
 		, m_RtPointCount(0u)
 		, m_UseFaceNormals(false)
@@ -25,6 +26,7 @@ namespace Nimbus
 									   float voxelSize,
 									   bool useFaceNormals)
 	{
+		m_VoxelSize = voxelSize;
 		m_UseFaceNormals = useFaceNormals;
 
 		if (!ComputeAabb(vertices, numVertices))

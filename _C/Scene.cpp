@@ -2,10 +2,16 @@
 #include "Nimbus/ScatterTracer.hpp"
 #include "Nimbus/Profiler.hpp"
 
-void Scene::SetPointCloud(py::array_t<Nimbus::PointData, py::array::c_style | py::array::forcecast> pointCloud, float voxelSize, float aabbBias)
+void Scene::SetPointCloud(py::array_t<Nimbus::PointData, py::array::c_style | py::array::forcecast> pointCloud,
+						  std::optional<py::array_t<Nimbus::EdgeData, py::array::c_style | py::array::forcecast>> edges,
+						  float voxelSize,
+						  float aabbBias)
 {
 	auto env = std::make_unique<Nimbus::PointCloudEnvironment>();
-	if (env->Init(pointCloud.data(), pointCloud.size(), voxelSize, aabbBias))
+	const Nimbus::EdgeData* edgePtr = edges ? edges.value().data() : nullptr;
+	size_t numEdges = edges ? edges.value().size() : 0u;
+	
+	if (env->Init(pointCloud.data(), pointCloud.size(), edgePtr, numEdges, voxelSize, aabbBias))
 	{
 		m_Environment = std::move(env);
 		return;
@@ -75,7 +81,7 @@ std::unique_ptr<SionnaPathWrapper> Scene::ComputeSionnaPathData(const Nimbus::Sc
 	if (m_Environment && st.Prepare(*m_Environment, params, txPtr, static_cast<uint32_t>(txs.shape(0)), rxPtr, static_cast<uint32_t>(rxs.shape(0))))
 	{
 		PROFILE_SCOPE();
-		return std::make_unique<SionnaPathWrapper>(st.Trace());
+		return std::make_unique<SionnaPathWrapper>(m_Environment->GetVoxelSize(), st.Trace());
 	}
 	throw std::runtime_error("Failed to compute path data.");
 	return {};

@@ -47,6 +47,17 @@ namespace Nimbus
         uint32_t material;
     };
 
+    struct EdgeData
+    {
+        glm::vec3 start;
+        glm::vec3 end;
+        glm::vec3 normal1;
+        glm::vec3 normal2;
+        uint32_t material1;
+        uint32_t material2;
+        uint32_t edgeID;
+    };
+
     struct Face
     {
         glm::vec3 normal;
