@@ -139,7 +139,7 @@ namespace Nimbus
         data.outNumRx = numRxBuffer.DevicePointerCast<uint32_t>();
         data.outRx2D = rx2DBuffer.DevicePointerCast<glm::uvec2>();
         data.rtPoints = envData.rtPoints;
-        data.numPoints = env.GetRtPointCount();//env.GetPointCount();
+        data.numPoints = env.GetRtPointCount();
         data.height = height;
 
         KernelData::Get().GetStCoverageConstantBuffer().Upload(&data, 1);
@@ -217,7 +217,7 @@ namespace Nimbus
         do
         {
             m_Environment->RefineSpecular(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, m_RxCount, 1u));
-        } while (RetrieveReceivedPaths() > 0u);
+        } while (RetrieveReceivedPaths());
         
         if (m_Scattering)
         { 
@@ -225,7 +225,7 @@ namespace Nimbus
             do
             {
                 m_Environment->RefineScatterer(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, m_RxCount, 1u));
-            } while(RetrieveReceivedPaths() > 0u);
+            } while(RetrieveReceivedPaths());
         }
 
         if (m_Diffraction)
@@ -234,7 +234,7 @@ namespace Nimbus
         }
     }
 
-    uint32_t ScatterTracer::RetrieveReceivedPaths()
+    bool ScatterTracer::RetrieveReceivedPaths()
     {
         uint32_t recvPathCount = 0;
         m_ReceivedPathCountBuffer.Download(&recvPathCount, 1);
@@ -249,6 +249,6 @@ namespace Nimbus
             m_PathStorage->AddPaths(recvClamped, m_PathInfos, m_Interactions, m_Normals, m_Labels, m_Materials);
             m_ReceivedPathCountBuffer.MemsetZero();
         }
-        return static_cast<uint32_t>(glm::max(0ull, static_cast<unsigned long long>(recvPathCount) - m_STRTData.numReceivedPathsMax));
+        return recvPathCount > m_STRTData.numReceivedPathsMax;
     }
 }

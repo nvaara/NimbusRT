@@ -26,7 +26,7 @@ namespace Nimbus
 		void Transmit(uint32_t txID);
 		void Propagate();
 		void Refine();
-		uint32_t RetrieveReceivedPaths();
+		bool RetrieveReceivedPaths();
 
 	private:
 		template <typename Type>
