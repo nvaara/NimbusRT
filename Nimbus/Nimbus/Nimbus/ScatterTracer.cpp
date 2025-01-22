@@ -3,6 +3,7 @@
 #include "KernelData.hpp"
 #include "Logger.hpp"
 #include <fstream>
+#include <memory>
 
 namespace Nimbus
 {
@@ -248,6 +249,6 @@ namespace Nimbus
             m_PathStorage->AddPaths(recvClamped, m_PathInfos, m_Interactions, m_Normals, m_Labels, m_Materials);
             m_ReceivedPathCountBuffer.MemsetZero();
         }
-        return static_cast<uint32_t>(glm::max(0ll, static_cast<int64_t>(recvPathCount) - m_STRTData.numReceivedPathsMax));
+        return static_cast<uint32_t>(glm::max(0ull, static_cast<unsigned long long>(recvPathCount) - m_STRTData.numReceivedPathsMax));
     }
 }

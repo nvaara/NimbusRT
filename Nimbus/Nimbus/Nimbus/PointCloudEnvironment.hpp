@@ -1,6 +1,7 @@
 #pragma once
 #include "CudaUtils.hpp"
 #include "Environment.hpp"
+#include <memory>
 
 namespace Nimbus
 {

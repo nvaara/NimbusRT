@@ -22,6 +22,8 @@ set(CXX_SOURCES
 
 add_library(Nimbus STATIC ${CXX_SOURCES})
 target_link_libraries(Nimbus PUBLIC Nimbus-Common)
+set_property(TARGET Nimbus PROPERTY POSITION_INDEPENDENT_CODE ON)
+# target_link_libraries(Nimbus PUBLIC Nimbus-Common stdc++ -static)
 target_include_directories(Nimbus PUBLIC .)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Dependencies/EmbedPTX)
