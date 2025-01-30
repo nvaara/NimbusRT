@@ -35,6 +35,7 @@ private:
 	__device__ bool IsRefineAccurate(const Nimbus::RefineParams& params);
 	__device__ bool ValidateReflectionVisibility(uint32_t ia);
 	__device__ bool WriteResult(Nimbus::PathInfo& result);
+	__device__ bool WriteDiffraction(const Nimbus::RefineParams& params, Nimbus::PathInfo& result);
 	__device__ float f(const glm::vec3& point, uint32_t iaIndex) const;
 	__device__ glm::vec2 fGradient(uint32_t iaIndex) const;
 	__device__ float LineSearch(uint32_t iaIndex, const Nimbus::RefineParams& params) const;
@@ -48,6 +49,7 @@ private:
 	uint32_t m_TxID;
 	uint32_t m_RxID;
 	uint32_t m_NumInteractions;
+	Nimbus::PathType m_PathType;
 	float m_PathLength;
 };
 
@@ -62,6 +64,7 @@ inline __device__ PathRefiner::PathRefiner(const Nimbus::PathInfoST& pathInfo,
 	, m_TxID(pathInfo.txID)
 	, m_RxID(rxID)
 	, m_NumInteractions(pathInfo.numInteractions)
+	, m_PathType(pathInfo.pathType)
 	, m_PathLength(InitializeRefineData(pathInfo, interactions, normals, tx, rx))
 {
 
@@ -75,7 +78,11 @@ inline __device__ bool PathRefiner::Refine(const Nimbus::RefineParams& params, N
 		{
 			return false;
 		}
-		if (IsRefineAccurate(params))
+		if (m_PathType == Nimbus::PathType::Diffraction)
+		{
+			return WriteDiffraction(params, result);
+		}
+		else if (IsRefineAccurate(params))
 		{
 			return WriteResult(result);
 		}
@@ -104,15 +111,25 @@ inline __device__ float PathRefiner::InitializeRefineData(const Nimbus::PathInfo
 		rd.normal = normals[iaIndex];
 		rd.gradient = glm::vec2(0.0f);
 
-		Ray ray(m_RefineData[iaIndex].position, rd.position);
-		if (ray.Trace(m_Params.env.asHandle, m_Params.rayBias, m_Params.rayBias))
+		if (m_PathType == Nimbus::PathType::Specular)
 		{
-			rd.position = ray.GetOrigin() + ray.GetDirection() * ray.GetPayload().t;
-			rd.normal = Nimbus::Utils::FixNormal(ray.GetDirection(), ray.GetPayload().normal);
-			rd.label = ray.GetPayload().label;
-			rd.material = ray.GetPayload().material;
+			Ray ray(m_RefineData[iaIndex].position, rd.position);
+			if (ray.Trace(m_Params.env.asHandle, m_Params.rayBias, m_Params.rayBias))
+			{
+				rd.position = ray.GetOrigin() + ray.GetDirection() * ray.GetPayload().t;
+				rd.normal = Nimbus::Utils::FixNormal(ray.GetDirection(), ray.GetPayload().normal);
+				rd.label = ray.GetPayload().label;
+				rd.material = ray.GetPayload().material;
+			}
+			Nimbus::Utils::GetOrientationVectors(rd.normal, rd.u, rd.v);
 		}
-		Nimbus::Utils::GetOrientationVectors(rd.normal, rd.u, rd.v);
+		else if (m_PathType == Nimbus::PathType::Diffraction)
+		{
+			rd.u = rd.normal;
+			rd.v = glm::vec3(0.0f);
+			rd.label = optixGetLaunchIndex().x; // EDGE ID;
+			rd.material = optixGetLaunchIndex().x;
+		}
 	}
 	return NormalizePath();
 }
@@ -179,6 +196,8 @@ inline __device__ bool PathRefiner::WriteResult(Nimbus::PathInfo& result)
 	result.rxID = m_RxID;
 	result.numInteractions = m_NumInteractions;
 	result.timeDelay = glm::length(m_RefineData[0].position - m_RefineData[1].position) * Nimbus::Constants::InvLightSpeedInVacuum;
+	result.pathType = Nimbus::PathType::Specular;
+
 	for (uint32_t ia = 0; ia < m_NumInteractions; ++ia)
 	{
 		result.timeDelay += glm::length(m_RefineData[ia + 1].position - m_RefineData[ia + 2].position) * Nimbus::Constants::InvLightSpeedInVacuum;
@@ -192,6 +211,24 @@ inline __device__ bool PathRefiner::WriteResult(Nimbus::PathInfo& result)
 	pathValid &= glm::dot(ray.GetPayload().normal, m_RefineData[m_NumInteractions].normal) > 0.99f;
 
 	return pathValid;
+}
+
+inline __device__ bool PathRefiner::WriteDiffraction(const Nimbus::RefineParams& params, Nimbus::PathInfo& result)
+{
+	glm::vec3 normal = m_RefineData[1].normal;
+	glm::vec3 origin = m_RefineData[0].position;
+	glm::vec3 dir = glm::normalize(m_RefineData[1].normalizedPosition - m_RefineData[0].normalizedPosition);
+	glm::vec3 cr = glm::cross(normal, dir);
+	
+	m_RefineData[1].position = origin + dir * glm::abs(glm::dot(glm::cross(m_RefineData[1].position - origin, normal), cr) / dot(cr, cr));
+
+	result.txID = m_TxID;
+	result.rxID = m_RxID;
+	result.numInteractions = m_NumInteractions;
+	result.timeDelay = (glm::length(m_RefineData[0].position - m_RefineData[1].position) + glm::length(m_RefineData[2].position - m_RefineData[1].position)) * Nimbus::Constants::InvLightSpeedInVacuum;
+	result.pathType = Nimbus::PathType::Diffraction;
+
+	return true;
 }
 
 inline __device__ float PathRefiner::f(const glm::vec3& point, uint32_t iaIndex) const

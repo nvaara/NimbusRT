@@ -49,7 +49,7 @@ extern "C" __global__ void __raygen__TransmitLOS()
 
 inline __device__ void WriteInteractionData(const Ray& ray, Nimbus::PathInfoST& pathInfo, uint32_t pathIndex)
 {
-	uint32_t index = pathIndex * data.maxNumIa + pathInfo.numInteractions++;	
+	uint32_t index = pathIndex * data.maxNumIa + pathInfo.numInteractions++;
 	data.propagationPathData.interactions[index] = ray.GetOrigin() + ray.GetDirection() * ray.GetPayload().t;
 	data.propagationPathData.normals[index] = ray.GetPayload().normal;
 	data.propagationPathData.labels[index] = ray.GetPayload().label;
@@ -61,11 +61,11 @@ inline __device__ void WriteInteractionData(const Ray& ray, Nimbus::PathInfoST& 
 	pathInfo.terminated = false;
 }
 
-inline __device__ void InitPath(const Ray& ray)
+inline __device__ void InitPath(const Ray& ray, Nimbus::PathType pathType)
 {
 	Nimbus::PathInfoST pathInfo{};
 	pathInfo.txID = data.currentTxID;
-	pathInfo.pathType = Nimbus::PathType::Specular;
+	pathInfo.pathType = pathType;
 	uint32_t pathIndex = atomicAdd(data.pathCount, 1u);
 	WriteInteractionData(ray, pathInfo, pathIndex);
 	data.propagationPathData.pathInfos[pathIndex] = pathInfo;
@@ -76,7 +76,7 @@ extern "C" __global__ void __raygen__Transmit()
 	uint32_t rtPointIndex = optixGetLaunchIndex().x;
 	Ray ray = Ray(data.transmitters[data.currentTxID], data.rtParams.env.rtPoints[rtPointIndex]);
 	if (ray.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.rayBias) && ray.GetPayload().rtPointIndex == rtPointIndex)
-		InitPath(ray);
+		InitPath(ray, Nimbus::PathType::Specular);
 }
 
 extern "C" __global__ void __raygen__Propagate()

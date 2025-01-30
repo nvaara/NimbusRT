@@ -13,7 +13,6 @@ namespace Nimbus
         , m_VoxelWorldInfo()
         , m_IeCount(0u)
         , m_PointCount(0u)
-        , m_EdgeCount(0u)
 	{
 	}
 
@@ -55,6 +54,9 @@ namespace Nimbus
         result.asHandle = m_AccelerationStructure.GetRawHandle();
         result.rtPoints = m_RtPointBuffer.DevicePointerCast<glm::vec3>();
         result.vwInfo = m_VoxelWorldInfo;
+        result.edges = m_EdgeBuffer.DevicePointerCast<DiffractionEdge>();
+        result.edgeCount = static_cast<uint32_t>(m_Edges.size());
+
         result.pc.primitiveInfos = m_PrimitiveInfoBuffer.DevicePointerCast<IEPrimitiveInfo>();
         result.pc.primitivePoints = m_PrimitivePointBuffer.DevicePointerCast<PrimitivePoint>();
         result.pc.primitives = m_PrimitiveBuffer.DevicePointerCast<OptixAabb>();
@@ -194,8 +196,36 @@ namespace Nimbus
 
     bool PointCloudEnvironment::ProcessEdges(const EdgeData* edges, size_t numEdges)
     {
-        m_EdgeCount = static_cast<uint32_t>(numEdges);
-        m_EdgeBuffer = DeviceBuffer::Create(edges, numEdges);
+        m_Edges.reserve(numEdges);
+        for (size_t i = 0; i < numEdges; ++i)
+        {
+            const EdgeData& edgeData = edges[i];
+            DiffractionEdge edge{};
+            glm::vec3 up{}, right{};
+            edge.forward = glm::normalize(edgeData.end - edgeData.start);
+            Utils::GetOrientationVectors(edge.forward, right, up);
+            edge.start = edgeData.start;
+            edge.end = edgeData.end;
+            edge.halfLength = glm::length(edge.start - edge.end) * 0.5f;
+            edge.midPoint = edge.start + edge.forward * edge.halfLength;
+            edge.normal0 = edgeData.normal1;
+            edge.normal1 = edgeData.normal2;
+            edge.inverseMatrix = glm::transpose(glm::mat3(right, edge.forward, up));
+
+            glm::vec3 lerpNormal = glm::normalize(glm::mix(edge.normal0, edge.normal1, 0.5f));
+            glm::vec3 n0 = glm::normalize(glm::cross(edge.forward, edge.normal0));
+            glm::vec3 n1 = glm::normalize(glm::cross(edge.forward, edge.normal1));
+            n0 = glm::dot(lerpNormal, n0) < 0.0f ? n0 : -n0;
+            n1 = glm::dot(lerpNormal, n1) < 0.0f ? n1 : -n1;
+            glm::vec3 localSurfaceDir2D0 = edge.inverseMatrix * n0;
+            glm::vec3 localSurfaceDir2D1 = edge.inverseMatrix * n1;
+
+            edge.localSurfaceDir2D0 = glm::normalize(glm::vec2(localSurfaceDir2D0.x, localSurfaceDir2D0.z));
+            edge.localSurfaceDir2D1 = glm::normalize(glm::vec2(localSurfaceDir2D1.x, localSurfaceDir2D1.z));
+
+            m_Edges.push_back(edge);
+        }
+        m_EdgeBuffer = DeviceBuffer::Create(m_Edges);
         return m_EdgeBuffer.GetRawHandle() != CUdeviceptr(0);
     }
 }

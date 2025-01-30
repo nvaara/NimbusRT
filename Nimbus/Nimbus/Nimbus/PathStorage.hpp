@@ -5,6 +5,7 @@
 #include "Nimbus/Types.hpp"
 #include "Hash.hpp"
 #include <array>
+#include "Environment.hpp"
 
 namespace Nimbus
 {
@@ -78,9 +79,6 @@ namespace Nimbus
 		{
 			void Reserve(uint32_t maxNumInteractions, size_t numReceivers, size_t numTransmitters, uint32_t maxLinkPaths, SionnaPathType pathType)
 			{
-				if (pathType == SionnaPathType::Diffracted)
-					maxNumInteractions = 1u;
-
 				size_t interactionBufferElements = maxNumInteractions * numReceivers * numTransmitters * maxLinkPaths;
 				size_t interactionBufferElementsIncident = (maxNumInteractions + 1) * numReceivers * numTransmitters * maxLinkPaths;
 				size_t pathBufferElements = numReceivers * numTransmitters * maxLinkPaths;
@@ -113,10 +111,6 @@ namespace Nimbus
 					scattering.lastDeflected.resize(pathBufferElements);
 					scattering.distToLastIa.resize(pathBufferElements);
 					scattering.distFromLastIaToRx.resize(pathBufferElements);
-					break;
-				}
-				case SionnaPathType::Diffracted:
-				{
 					break;
 				}
 				default:
@@ -154,8 +148,12 @@ namespace Nimbus
 			//Diffraction specific
 			struct
 			{
-				std::vector<glm::uvec2> materials;
+				
 			} diffraction;
+			struct
+			{
+				
+			} ris;
 		};
 
 		struct SionnaPathData
@@ -163,10 +161,10 @@ namespace Nimbus
 			static constexpr size_t PathTypeCount = static_cast<size_t>(SionnaPathType::TypeCount);
 			void ReservePaths()
 			{
-				for (uint32_t i = 0; i < PathTypeCount; ++i)
-					paths[i].Reserve(maxNumIa, receivers.size(), transmitters.size(), maxLinkPaths[i], static_cast<SionnaPathType>(i));
+				for (uint32_t i = 1; i < PathTypeCount; ++i) //Skip LOS because its included in Specular paths
+					paths[i].Reserve(maxNumIa[i], receivers.size(), transmitters.size(), maxLinkPaths[i], static_cast<SionnaPathType>(i));
 			}
-			uint32_t maxNumIa;
+			std::array<uint32_t, SionnaPathData::PathTypeCount> maxNumIa;
 			std::vector<glm::vec3> transmitters;
 			std::vector<glm::vec3> receivers;
 			std::array<uint32_t, PathTypeCount> maxLinkPaths;
@@ -174,7 +172,7 @@ namespace Nimbus
 		};
 
 		PathData ToPathData();
-		SionnaPathData ToSionnaPathData(float voxelSize);
+		SionnaPathData ToSionnaPathData(const Environment& env);
 		SionnaPathType GetSionnaPathType(PathType type);
 
 	private:
@@ -187,7 +185,7 @@ namespace Nimbus
 		};
 
 	private:
-		uint32_t m_MaxNumInteractions;
+		std::array<uint32_t, SionnaPathData::PathTypeCount> m_MaxNumInteractions;
 		std::vector<glm::vec3> m_Transmitters;
 		std::vector<glm::vec3> m_Receivers;
 		std::array<uint32_t, SionnaPathData::PathTypeCount> m_MaxLinkPaths;

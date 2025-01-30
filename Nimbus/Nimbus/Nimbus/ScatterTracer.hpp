@@ -27,6 +27,8 @@ namespace Nimbus
 		void Propagate();
 		void Refine();
 		bool RetrieveReceivedPaths();
+		void ComputeDiffractionPaths();
+		void ComputeRisPaths();
 
 	private:
 		template <typename Type>
@@ -62,6 +64,7 @@ namespace Nimbus
 		uint32_t m_PropagationPathCount;
 		PathData<PathInfo> m_ReceivedPathData;
 		PathData<PathInfoST> m_PropagationPathData;
+		PathData<PathInfoST> m_DiffractionPathData;
 		std::vector<PathInfo> m_PathInfos;
 		std::vector<glm::vec3> m_Interactions;
 		std::vector<glm::vec3> m_Normals;

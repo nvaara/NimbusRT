@@ -92,9 +92,10 @@ py::array_t<uint32_t, py::array::c_style> CoverageWrapper::GetDimensions() const
 	return py::array_t<uint32_t, py::array::c_style>({ glm::uvec2::length() }, { sizeof(glm::uvec2::value_type) }, &m_CoverageMapInfo.dimensions.x, py::none());
 }
 
-SionnaPathWrapper::SionnaPathWrapper(float voxelSize, std::unique_ptr<Nimbus::PathStorage>&& path)
-	: m_SionnaData(path->ToSionnaPathData(voxelSize))
+SionnaPathWrapper::SionnaPathWrapper(const Nimbus::Environment& env, std::unique_ptr<Nimbus::PathStorage>&& path)
+	: m_SionnaData(path->ToSionnaPathData(env))
 {
+
 }
 
 py::array_t<float, py::array::c_style> SionnaPathWrapper::GetTransmitters() const
@@ -113,7 +114,7 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetReceivers() const
 
 py::array_t<float, py::array::c_style> SionnaPathWrapper::GetInteractions(uint32_t sionnaPathType) const
 {
-	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length()};
+	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa[sionnaPathType], m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length()};
 	std::array<size_t, 5> stride = { shape[1] * shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[3] * sizeof(glm::vec3),
@@ -125,7 +126,7 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetInteractions(uint32
 
 py::array_t<float, py::array::c_style> SionnaPathWrapper::GetNormals(uint32_t sionnaPathType) const
 {
-	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length() };
+	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa[sionnaPathType], m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length() };
 	std::array<size_t, 5> stride = { shape[1] * shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[3] * sizeof(glm::vec3),
@@ -137,7 +138,7 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetNormals(uint32_t si
 
 py::array_t<int32_t, py::array::c_style> SionnaPathWrapper::GetMaterials(uint32_t sionnaPathType) const
 {
-	std::array<size_t, 4> shape = { m_SionnaData.maxNumIa, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
+	std::array<size_t, 4> shape = { m_SionnaData.maxNumIa[sionnaPathType], m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
 	std::array<size_t, 4> stride = { shape[1] * shape[2] * shape[3] * sizeof(uint32_t),
 									 shape[2] * shape[3] * sizeof(uint32_t),
 									 shape[3] * sizeof(uint32_t),
@@ -148,7 +149,7 @@ py::array_t<int32_t, py::array::c_style> SionnaPathWrapper::GetMaterials(uint32_
 
 py::array_t<float, py::array::c_style> SionnaPathWrapper::GetIncidentRays(uint32_t sionnaPathType) const
 {
-	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa + 1, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length() };
+	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa[sionnaPathType] + 1, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length() };
 	std::array<size_t, 5> stride = { shape[1] * shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[3] * sizeof(glm::vec3),
@@ -160,7 +161,7 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetIncidentRays(uint32
 
 py::array_t<float, py::array::c_style> SionnaPathWrapper::GetDeflectedRays(uint32_t sionnaPathType) const
 {
-	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa, m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length()};
+	std::array<size_t, 5> shape = { m_SionnaData.maxNumIa[sionnaPathType], m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType], glm::vec3::length()};
 	std::array<size_t, 5> stride = { shape[1] * shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[2] * shape[3] * sizeof(glm::vec3),
 									 shape[3] * sizeof(glm::vec3),
@@ -334,4 +335,9 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetScatDistFromLastIaT
 									 sizeof(float) };
 
 	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].scattering.distFromLastIaToRx.data()), py::none());
+}
+
+int32_t SionnaPathWrapper::GetMaxLinkPaths(uint32_t sionnaPathType) const
+{
+	return static_cast<int32_t>(m_SionnaData.maxLinkPaths[sionnaPathType]);
 }

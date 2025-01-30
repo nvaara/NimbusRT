@@ -35,7 +35,7 @@ namespace Nimbus
         m_RxCount = rxCount;
         m_MaxNumIa = params.maxNumInteractions;
         m_Scattering = params.scattering;
-        m_Diffraction = params.diffraction;
+        m_Diffraction = params.diffraction && env.HasEdges();
 
         m_TransmitterBuffer = DeviceBuffer(sizeof(glm::vec3) * txCount);
         m_TransmitterBuffer.Upload(txs, txCount);
@@ -70,7 +70,9 @@ namespace Nimbus
         m_STRTData.rxVisible = m_RxVisibleBuffer.DevicePointerCast<uint32_t>();
         m_STRTData.numRx = static_cast<uint32_t>(rxCount);
 
-        m_PathProcessedBuffer = DeviceBuffer(rxCount * m_IeCount / 8u + sizeof(uint32_t));
+        uint32_t pathCount = glm::max(m_IeCount, m_Environment->GetEdgeCount());
+
+        m_PathProcessedBuffer = DeviceBuffer(rxCount * pathCount / 8u + sizeof(uint32_t));
         m_PathProcessedBuffer.MemsetZero();
         
         m_PathCountBuffer = DeviceBuffer(sizeof(uint32_t));
@@ -79,15 +81,15 @@ namespace Nimbus
         m_ReceivedPathCountBuffer = DeviceBuffer(sizeof(uint32_t));
         m_ReceivedPathCountBuffer.MemsetZero();
         
-        m_ReceivedPathData.Resize(m_IeCount, params.maxNumInteractions);
-        m_PropagationPathData.Resize(m_IeCount, params.maxNumInteractions);
+        m_ReceivedPathData.Resize(pathCount, params.maxNumInteractions);
+        m_PropagationPathData.Resize(pathCount, params.maxNumInteractions);
 
         m_PathStorage = std::make_unique<PathStorage>(params.maxNumInteractions, txs, txCount, rxs, rxCount);
-        m_PathInfos.resize(m_IeCount);
-        m_Interactions.resize(m_IeCount * params.maxNumInteractions);
-        m_Normals.resize(m_IeCount * params.maxNumInteractions);
-        m_Labels.resize(m_IeCount * params.maxNumInteractions);
-        m_Materials.resize(m_IeCount * params.maxNumInteractions);
+        m_PathInfos.resize(pathCount);
+        m_Interactions.resize(pathCount * params.maxNumInteractions);
+        m_Normals.resize(pathCount * params.maxNumInteractions);
+        m_Labels.resize(pathCount * params.maxNumInteractions);
+        m_Materials.resize(pathCount * params.maxNumInteractions);
 
         m_STRTData.propagationPathData.interactions = m_PropagationPathData.interactionBuffer.DevicePointerCast<glm::vec3>();
         m_STRTData.propagationPathData.normals = m_PropagationPathData.normalBuffer.DevicePointerCast<glm::vec3>();
@@ -103,13 +105,12 @@ namespace Nimbus
 
         m_STRTData.maxNumIa = params.maxNumInteractions;
 
-        m_STRTData.numReceivedPathsMax = m_IeCount;
+        m_STRTData.numReceivedPathsMax = pathCount;
         m_STRTData.pathsProcessed = m_PathProcessedBuffer.DevicePointerCast<uint32_t>();
         m_STRTData.pathCount = m_PathCountBuffer.DevicePointerCast<uint32_t>();
         m_STRTData.receivedPathCount = m_ReceivedPathCountBuffer.DevicePointerCast<uint32_t>();
         const Aabb& aabb = env.GetAabb();
         m_STRTData.rtParams.rayMaxLength = glm::length(aabb.max - aabb.min);
-
         return true;
     }
 
@@ -198,9 +199,10 @@ namespace Nimbus
         m_STRTData.currentTxID = txID;
         m_STRTDataBuffer.Upload(&m_STRTData, 1);
         DetermineLOSPaths();
-        
         if (m_MaxNumIa > 0)
         {
+            ComputeDiffractionPaths();
+            ComputeRisPaths();
             m_Environment->Transmit(m_STRTDataBuffer, glm::uvec3(m_IeCount, 1, 1));
             m_PathCountBuffer.Download(&m_PropagationPathCount, 1);
         }
@@ -227,11 +229,6 @@ namespace Nimbus
                 m_Environment->RefineScatterer(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, m_RxCount, 1u));
             } while(RetrieveReceivedPaths());
         }
-
-        if (m_Diffraction)
-        {
-            
-        }
     }
 
     bool ScatterTracer::RetrieveReceivedPaths()
@@ -250,5 +247,23 @@ namespace Nimbus
             m_ReceivedPathCountBuffer.MemsetZero();
         }
         return recvPathCount > m_STRTData.numReceivedPathsMax;
+    }
+
+    void ScatterTracer::ComputeDiffractionPaths()
+    {
+        if (m_Diffraction)
+        {
+            glm::vec3 dims = glm::uvec3(m_Environment->GetEdgeCount(), m_RxCount, 1u);
+            m_PathProcessedBuffer.MemsetZero();
+            do
+            {
+                m_Environment->RefineDiffraction(m_STRTDataBuffer, dims);
+            } while (RetrieveReceivedPaths());
+        }
+    }
+
+    void ScatterTracer::ComputeRisPaths()
+    {
+        LOG("TODO: Compute RIS Paths.");
     }
 }

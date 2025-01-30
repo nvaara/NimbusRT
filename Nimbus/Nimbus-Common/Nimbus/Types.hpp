@@ -124,11 +124,45 @@ namespace Nimbus
         float distanceThreshold;
     };
 
+    struct DiffractionEdge
+    {
+        __device__ static float Cross2D(const glm::vec2& a, const glm::vec2& b);
+        __device__ bool IsValidIncidentRayForDiffraction(const glm::vec3& incidentRay) const;
+
+        glm::vec3 forward;
+        glm::vec3 start;
+        glm::vec3 end;
+        glm::vec3 midPoint;
+        float halfLength;
+        glm::vec3 normal0;
+        glm::vec3 normal1;
+        glm::mat3 inverseMatrix;
+        glm::vec2 localSurfaceDir2D0;
+        glm::vec2 localSurfaceDir2D1;
+    };
+
+    inline __device__ float DiffractionEdge::Cross2D(const glm::vec2& a, const glm::vec2& b)
+    {
+        return a.x * b.y - b.x * a.y;
+    }
+
+    inline __device__ bool DiffractionEdge::IsValidIncidentRayForDiffraction(const glm::vec3& incidentRay) const
+    {
+        glm::vec3 localIncidentRay = inverseMatrix * incidentRay;
+        glm::vec2 localIncident2D = glm::normalize(-glm::vec2(localIncidentRay.x, localIncidentRay.z));
+
+        bool test0 = Cross2D(localSurfaceDir2D0, localIncident2D) * Cross2D(localSurfaceDir2D0, localSurfaceDir2D1) >= 0;
+        bool test1 = Cross2D(localSurfaceDir2D1, localIncident2D) * Cross2D(localSurfaceDir2D1, localSurfaceDir2D0) >= 0;
+        return !(test0 && test1);
+    }
+
     struct EnvironmentData
     {
         OptixTraversableHandle asHandle;
         const glm::vec3* rtPoints;
         VoxelWorldInfo vwInfo;
+        const DiffractionEdge* edges;
+        uint32_t edgeCount;
         union
         {
             struct
@@ -206,6 +240,15 @@ namespace Nimbus
             uint32_t* labels;
             uint32_t* materials;
         } propagationPathData;
+
+        struct
+        {
+            PathInfoST* pathInfos;
+            glm::vec3* interactions;
+            glm::vec3* normals;
+            uint32_t* labels;
+            uint32_t* materials;
+        } diffractionPathData;
 
         uint32_t maxNumIa;
         uint32_t* receivedPathCount;

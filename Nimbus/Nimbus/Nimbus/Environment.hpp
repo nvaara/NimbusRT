@@ -1,5 +1,6 @@
 #pragma once
 #include <Nimbus/Types.hpp>
+#include <Nimbus/DeviceBuffer.hpp>
 
 namespace Nimbus
 {
@@ -20,9 +21,9 @@ namespace Nimbus
 		virtual EnvironmentData GetGpuEnvironmentData() const = 0;
 		virtual uint32_t GetRtPointCount() const = 0;
 		virtual const Aabb& GetAabb() const = 0;
-		bool IsManualEdge() const { return GetManualEdgeCount() > 0u; }
-		virtual uint32_t GetManualEdgeCount() const = 0;
-		virtual const DeviceBuffer& GetEdgeBuffer() const = 0;
+		virtual const std::vector<DiffractionEdge> GetEdges() const = 0;
+		bool HasEdges() const { return GetEdges().size() > 0u; }
+		uint32_t GetEdgeCount() const { return static_cast<uint32_t>(GetEdges().size()); }
 
 		virtual void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const = 0;
 		virtual void DetermineLosPaths(const DeviceBuffer& params, const glm::uvec3& dims) const = 0;

@@ -16,8 +16,7 @@ namespace Nimbus
 		EnvironmentData GetGpuEnvironmentData() const override;
 		const Aabb& GetAabb() const override { return m_Aabb; }
 		uint32_t GetRtPointCount() const override { return m_IeCount; }
-		virtual uint32_t GetManualEdgeCount() const override { return m_EdgeCount; }
-		virtual const DeviceBuffer& GetEdgeBuffer() const override { return m_EdgeBuffer; };
+		const std::vector<DiffractionEdge> GetEdges() const override { return m_Edges; }
 
 		void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 		void DetermineLosPaths(const DeviceBuffer& params, const glm::uvec3& dims) const override;
@@ -45,7 +44,7 @@ namespace Nimbus
 		DeviceBuffer m_RtPointBuffer;
 		DeviceBuffer m_PrimitiveInfoBuffer;
 		DeviceBuffer m_PrimitivePointBuffer;
-		uint32_t m_EdgeCount;
+		std::vector<DiffractionEdge> m_Edges;
 		DeviceBuffer m_EdgeBuffer;
 	};
 }

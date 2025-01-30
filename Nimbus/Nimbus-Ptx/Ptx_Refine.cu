@@ -95,8 +95,6 @@ extern "C" __global__ void __raygen__RefineSpecular()
 		PathRefiner refiner = PathRefiner(path, interactions, normals, data.transmitters[path.txID], data.receivers[rxID], rxID, data.rtParams);
 		if (refiner.Refine(data.refineParams, result))
 		{
-			result.pathType = Nimbus::PathType::Specular;
-			result.rxID = rxID;
 			if (!AddReceivedRefinedPath(result, refiner.GetRefineData()))
 				return;
 		}
@@ -171,7 +169,44 @@ extern "C" __global__ void __raygen__RefineScatterer()
 	}
 }
 
+inline __device__ bool ValidateDiffraction(const Nimbus::DiffractionEdge& edge, const Nimbus::PathInfo& pathInfo, const RefineData* refineData)
+{
+	glm::vec3 edgePoint = refineData[1].position;
+	Ray txToEdge = Ray(refineData[0].position, edgePoint);
+	Ray rxToEdge = Ray(refineData[2].position, edgePoint);
+	constexpr uint32_t flags = OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT;
+	bool txEdgeVisible = !txToEdge.Trace(data.rtParams.env.asHandle, 0.0f, -data.rtParams.rayBias, flags);
+	bool rxEdgeVisible = !rxToEdge.Trace(data.rtParams.env.asHandle, 0.0f, -data.rtParams.rayBias, flags);
+	bool pointOnEdge = glm::length(edge.midPoint - edgePoint) <= edge.halfLength;
+	bool isValidRay = edge.IsValidIncidentRayForDiffraction(txToEdge.GetDirection());
+	return txEdgeVisible && rxEdgeVisible && pointOnEdge && isValidRay;
+}
+
 extern "C" __global__ void __raygen__RefineDiffraction()
 {
+	uint32_t edgeID = optixGetLaunchIndex().x;
+	uint32_t rxID = optixGetLaunchIndex().y;
+	
+	const Nimbus::DiffractionEdge& edge = data.rtParams.env.edges[edgeID];
+	glm::vec3 iaPoint = (edge.start + edge.end) * 0.5f;
+	glm::vec3 normal = glm::normalize(edge.end - edge.start);
 
+	glm::uvec2 edgeMask = Nimbus::Utils::GetBinBitMask32(edgeID * data.numRx + rxID);
+
+	if (data.pathsProcessed[edgeMask.x] & edgeMask.y)
+		return;
+
+	Nimbus::PathInfoST path{};
+	path.txID = data.currentTxID;
+	path.pathType = Nimbus::PathType::Diffraction;
+	path.numInteractions = 1u;
+
+	Nimbus::PathInfo result{};
+	PathRefiner refiner = PathRefiner(path, &iaPoint, &normal, data.transmitters[path.txID], data.receivers[rxID], rxID, data.rtParams);
+	if (refiner.Refine(data.refineParams, result))
+	{
+		if (ValidateDiffraction(edge, result, refiner.GetRefineData()) && !AddReceivedRefinedPath(result, refiner.GetRefineData()))
+			return;
+	}
+	atomicOr(&data.pathsProcessed[edgeMask.x], edgeMask.y);
 }

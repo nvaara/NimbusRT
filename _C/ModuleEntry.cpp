@@ -87,7 +87,8 @@ PYBIND11_MODULE(_C, m)
 		.def("scat_k_s", &SionnaPathWrapper::GetScatLastDeflected)
 		.def("scat_last_normals", &SionnaPathWrapper::GetScatLastNormals)
 		.def("scat_src_2_last_int_dist", &SionnaPathWrapper::GetScatDistToLastIa)
-		.def("scat_2_target_dist", &SionnaPathWrapper::GetScatDistFromLastIaToRx);
+		.def("scat_2_target_dist", &SionnaPathWrapper::GetScatDistFromLastIaToRx)
+		.def("max_link_paths", &SionnaPathWrapper::GetMaxLinkPaths);
 
 	py::class_<Nimbus::ScatterTracingParams>(m, "NativeRTParams")
 		.def(py::init<>())

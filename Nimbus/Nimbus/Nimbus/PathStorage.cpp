@@ -3,11 +3,11 @@
 namespace Nimbus
 {
 	PathStorage::PathStorage(uint32_t maxNumInteractions, const glm::vec3* txs, uint32_t txCount, const glm::vec3* rxs, uint32_t rxCount)
-		: m_MaxNumInteractions(maxNumInteractions)
+		: m_MaxNumInteractions({ maxNumInteractions, maxNumInteractions, 1u, maxNumInteractions, 1u })
 		, m_InteractionData(maxNumInteractions)
 		, m_Transmitters(txs, txs + txCount)
 		, m_Receivers(rxs, rxs + rxCount)
-		, m_PathCounts(txCount + rxCount)
+		, m_PathCounts(txCount * rxCount)
 		, m_MaxLinkPaths()
 	{
 		for (auto& counts : m_PathCounts)
@@ -37,6 +37,7 @@ namespace Nimbus
 			const PathInfo& pathInfo = pathInfos[pathIndex];
 			size_t dataIndex = pathIndex * m_InteractionData.size();
 			PathHashKey hash = GetPathHash(pathInfo, &labels[dataIndex]);
+
 			auto [it, emplaced] = m_PathMap.try_emplace(hash, pathInfo.timeDelay, static_cast<uint32_t>(m_PathMap.size()));
 			if (emplaced)
 			{
@@ -84,7 +85,7 @@ namespace Nimbus
 	PathStorage::PathData PathStorage::ToPathData()
 	{
 		PathData data{};
-		data.maxNumIa = m_MaxNumInteractions;
+		data.maxNumIa = m_MaxNumInteractions[static_cast<uint32_t>(SionnaPathType::Specular)];
 		data.maxLinkPaths = 0u;
 		data.transmitters = m_Transmitters;
 		data.receivers = m_Receivers;
@@ -112,9 +113,10 @@ namespace Nimbus
 		return data;
 	}
 
-	PathStorage::SionnaPathData PathStorage::ToSionnaPathData(float voxelSize)
+	PathStorage::SionnaPathData PathStorage::ToSionnaPathData(const Environment& env)
 	{
 		SionnaPathData sionnaData{};
+		float voxelSize = env.GetVoxelSize();
 		float voxelArea = voxelSize * voxelSize;
 
 		sionnaData.transmitters = m_Transmitters;
@@ -138,21 +140,15 @@ namespace Nimbus
 			size_t pathOffset = --m_PathCounts[rxID * m_Transmitters.size() + txID][typeIndex];
 			size_t txOffset = txID * m_MaxLinkPaths[typeIndex];
 			size_t rxOffset = rxID * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
-			size_t diffractionOffset = (pathType == SionnaPathType::Diffracted ? 2u : 1u);
 
-			for (uint32_t ia = 0; ia < m_MaxNumInteractions; ++ia)
+			for (uint32_t ia = 0; ia < m_MaxNumInteractions[typeIndex]; ++ia)
 			{
 				size_t iaOffset = ia * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
 				size_t pathIaIndex = iaOffset + rxOffset + txOffset + pathOffset;
 
 				glm::vec3 iaPoint = m_InteractionData[ia].interactions[pathIndex];
 				sionnaData.paths[typeIndex].interactions[pathIaIndex] = iaPoint;
-				if (pathType == SionnaPathType::Diffracted)
-				{
-					sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
-				}
-				else
-					sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
+				sionnaData.paths[typeIndex].normals[pathIaIndex] = m_InteractionData[ia].normals[pathIndex];
 				sionnaData.paths[typeIndex].materials[pathIaIndex] = m_InteractionData[ia].materials[pathIndex];
 				sionnaData.paths[typeIndex].incidentRays[pathIaIndex] = ia > 0 ? glm::normalize(iaPoint - m_InteractionData[ia - 1].interactions[pathIndex]) : glm::normalize(iaPoint - tx);
 				sionnaData.paths[typeIndex].deflectedRays[pathIaIndex] = static_cast<int32_t>(ia) < static_cast<int32_t>(numInteractions) - 1 ? glm::normalize(m_InteractionData[ia + 1].interactions[pathIndex] - iaPoint) : glm::normalize(rx - iaPoint);

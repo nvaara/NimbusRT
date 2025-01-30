@@ -61,6 +61,8 @@ namespace Nimbus
 		result.asHandle = m_AccelerationStructure.GetRawHandle();
 		result.rtPoints = m_RtPointsBuffer.DevicePointerCast<glm::vec3>();
 		result.vwInfo = m_VoxelWorldInfo;
+		result.edges = m_EdgeBuffer.DevicePointerCast<DiffractionEdge>();
+		result.edgeCount = static_cast<uint32_t>(m_Edges.size());
 		result.triangle.useFaceNormals = m_UseFaceNormals;
 		result.triangle.indices = m_IndexBuffer.DevicePointerCast<uint32_t>();
 		result.triangle.normals = m_NormalBuffer.DevicePointerCast<glm::vec3>();

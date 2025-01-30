@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include "Nimbus/Environment.hpp"
 
 namespace py = pybind11;
 
@@ -44,7 +45,7 @@ private:
 class SionnaPathWrapper
 {
 public:
-	SionnaPathWrapper(float voxelSize, std::unique_ptr<Nimbus::PathStorage>&& path);
+	SionnaPathWrapper(const Nimbus::Environment& env, std::unique_ptr<Nimbus::PathStorage>&& path);
 	py::array_t<float, py::array::c_style> GetTransmitters() const;
 	py::array_t<float, py::array::c_style> GetReceivers() const;
 	py::array_t<float, py::array::c_style> GetInteractions(uint32_t sionnaPathType) const;
@@ -69,6 +70,8 @@ public:
 	py::array_t<float, py::array::c_style> GetScatLastNormals(uint32_t sionnaPathType) const;
 	py::array_t<float, py::array::c_style> GetScatDistToLastIa(uint32_t sionnaPathType) const;
 	py::array_t<float, py::array::c_style> GetScatDistFromLastIaToRx(uint32_t sionnaPathType) const;
+
+	int32_t GetMaxLinkPaths(uint32_t sionnaPathType) const;
 
 private:
 	Nimbus::PathStorage::SionnaPathData m_SionnaData;

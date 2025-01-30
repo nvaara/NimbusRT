@@ -81,7 +81,7 @@ std::unique_ptr<SionnaPathWrapper> Scene::ComputeSionnaPathData(const Nimbus::Sc
 	if (m_Environment && st.Prepare(*m_Environment, params, txPtr, static_cast<uint32_t>(txs.shape(0)), rxPtr, static_cast<uint32_t>(rxs.shape(0))))
 	{
 		PROFILE_SCOPE();
-		return std::make_unique<SionnaPathWrapper>(m_Environment->GetVoxelSize(), st.Trace());
+		return std::make_unique<SionnaPathWrapper>(*m_Environment, st.Trace());
 	}
 	throw std::runtime_error("Failed to compute path data.");
 	return {};
