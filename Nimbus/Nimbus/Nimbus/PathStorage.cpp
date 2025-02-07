@@ -123,6 +123,8 @@ namespace Nimbus
 		sionnaData.receivers = m_Receivers;
 		sionnaData.maxNumIa = m_MaxNumInteractions;
 		sionnaData.maxLinkPaths = m_MaxLinkPaths;
+		if (m_MaxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] > 0u)
+			sionnaData.maxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] = env.GetRisPointCount();
 		sionnaData.ReservePaths();
 
 		uint32_t numTotalPaths = static_cast<uint32_t>(m_TxIDs.size());
@@ -138,12 +140,16 @@ namespace Nimbus
 			double timeDelay = m_TimeDelays[pathIndex];
 
 			size_t pathOffset = --m_PathCounts[rxID * m_Transmitters.size() + txID][typeIndex];
-			size_t txOffset = txID * m_MaxLinkPaths[typeIndex];
-			size_t rxOffset = rxID * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+
+			if (pathType == SionnaPathType::RIS)
+				pathOffset = m_InteractionData[0].labels[pathIndex];
+
+			size_t txOffset = txID * sionnaData.maxLinkPaths[typeIndex];
+			size_t rxOffset = rxID * m_Transmitters.size() * sionnaData.maxLinkPaths[typeIndex];
 
 			for (uint32_t ia = 0; ia < m_MaxNumInteractions[typeIndex]; ++ia)
 			{
-				size_t iaOffset = ia * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+				size_t iaOffset = ia * m_Receivers.size() * m_Transmitters.size() * sionnaData.maxLinkPaths[typeIndex];
 				size_t pathIaIndex = iaOffset + rxOffset + txOffset + pathOffset;
 
 				glm::vec3 iaPoint = m_InteractionData[ia].interactions[pathIndex];
@@ -153,7 +159,6 @@ namespace Nimbus
 				sionnaData.paths[typeIndex].incidentRays[pathIaIndex] = ia > 0 ? glm::normalize(iaPoint - m_InteractionData[ia - 1].interactions[pathIndex]) : glm::normalize(iaPoint - tx);
 				sionnaData.paths[typeIndex].deflectedRays[pathIaIndex] = static_cast<int32_t>(ia) < static_cast<int32_t>(numInteractions) - 1 ? glm::normalize(m_InteractionData[ia + 1].interactions[pathIndex] - iaPoint) : glm::normalize(rx - iaPoint);
 			}
-
 			size_t pathDataIndex = txOffset + rxOffset + pathOffset;
 			sionnaData.paths[typeIndex].timeDelays[pathDataIndex] = static_cast<float>(m_TimeDelays[pathIndex]);
 			sionnaData.paths[typeIndex].totalDistance[pathDataIndex] = static_cast<float>(m_TimeDelays[pathIndex]) * Constants::LightSpeedInVacuum;
@@ -161,7 +166,7 @@ namespace Nimbus
 			sionnaData.paths[typeIndex].kTx[pathDataIndex] = numInteractions > 0 ? glm::normalize(m_InteractionData[0].interactions[pathIndex] - tx) : glm::normalize(rx - tx);
 			sionnaData.paths[typeIndex].kRx[pathDataIndex] = numInteractions > 0 ? glm::normalize(m_InteractionData[numInteractions - 1].interactions[pathIndex] - rx) : glm::normalize(tx - rx);
 			
-			size_t incidentToRxIndex = numInteractions * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+			size_t incidentToRxIndex = numInteractions * m_Receivers.size() * m_Transmitters.size() * sionnaData.maxLinkPaths[typeIndex];
 			sionnaData.paths[typeIndex].incidentRays[incidentToRxIndex + rxOffset + txOffset + pathOffset] = -sionnaData.paths[typeIndex].kRx[pathDataIndex];
 
 			sionnaData.paths[typeIndex].aodElevation[pathDataIndex] = glm::acos(sionnaData.paths[typeIndex].kTx[pathDataIndex].z);
@@ -176,8 +181,8 @@ namespace Nimbus
 				sionnaData.paths[typeIndex].scattering.lastObjects[pathDataIndex] = m_InteractionData[numInteractions - 1].materials[pathIndex];
 				sionnaData.paths[typeIndex].scattering.lastVertices[pathDataIndex] = m_InteractionData[numInteractions - 1].interactions[pathIndex];
 				sionnaData.paths[typeIndex].scattering.lastNormal[pathDataIndex] = m_InteractionData[numInteractions - 1].normals[pathIndex];
-				
-				size_t iaOffset = (numInteractions - 1) * m_Receivers.size() * m_Transmitters.size() * m_MaxLinkPaths[typeIndex];
+
+				size_t iaOffset = (numInteractions - 1) * m_Receivers.size() * m_Transmitters.size() * sionnaData.maxLinkPaths[typeIndex];
 				size_t pathIaIndex = iaOffset + rxOffset + txOffset + pathOffset;
 				sionnaData.paths[typeIndex].scattering.lastIncident[pathDataIndex] = sionnaData.paths[typeIndex].incidentRays[pathIaIndex];
 				sionnaData.paths[typeIndex].scattering.lastDeflected[pathDataIndex] = sionnaData.paths[typeIndex].deflectedRays[pathIaIndex];
@@ -190,15 +195,18 @@ namespace Nimbus
 				sionnaData.paths[typeIndex].scattering.distToLastIa[pathDataIndex] = (totalDistance - sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex]);
 				break;
 			}
-			case SionnaPathType::Diffracted:
+			case SionnaPathType::RIS:
 			{
-
+				glm::vec3 risPoint = m_InteractionData[numInteractions - 1].interactions[pathIndex];
+				glm::vec3 normal = m_InteractionData[numInteractions - 1].normals[pathIndex];
+				sionnaData.paths[typeIndex].ris.cosThetaTx[pathDataIndex] = glm::dot(-sionnaData.paths[typeIndex].kTx[pathDataIndex], normal);
+				sionnaData.paths[typeIndex].ris.cosThetaRx[pathDataIndex] = glm::dot(-sionnaData.paths[typeIndex].kRx[pathDataIndex], normal);
+				sionnaData.paths[typeIndex].ris.distanceTxRis[pathDataIndex] = glm::length(tx - risPoint);
+				sionnaData.paths[typeIndex].ris.distanceRxRis[pathDataIndex] = glm::length(rx - risPoint);
 				break;
 			}
 			default:
-			{
 				break;
-			}
 			}
 		}
 		return sionnaData;

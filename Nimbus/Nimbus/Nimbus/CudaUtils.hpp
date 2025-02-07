@@ -138,6 +138,7 @@ namespace Nimbus
 	public:
 		static AccelerationStructure CreateFromAabbs(const Nimbus::DeviceBuffer& aabbBuffer, uint32_t primitiveCount);
 		static AccelerationStructure CreateFromTriangles(const Nimbus::DeviceBuffer& vertexBuffer, uint32_t numVertices, const Nimbus::DeviceBuffer& indexBuffer, uint32_t numFaces);
+		static AccelerationStructure CreateFromInstances(const Nimbus::DeviceBuffer& instanceBuffer, uint32_t numInstances);
 
 		AccelerationStructure() : m_AsHandle(0) {}
 		AccelerationStructure(const OptixBuildInput& buildInput);

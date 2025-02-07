@@ -337,7 +337,60 @@ py::array_t<float, py::array::c_style> SionnaPathWrapper::GetScatDistFromLastIaT
 	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].scattering.distFromLastIaToRx.data()), py::none());
 }
 
+py::array_t<float, py::array::c_style> SionnaPathWrapper::GetCosThetaTx(uint32_t sionnaPathType) const
+{
+	std::array<size_t, 3> shape = { m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
+	std::array<size_t, 3> stride = { shape[1] * shape[2] * sizeof(float),
+									 shape[2] * sizeof(float),
+									 sizeof(float) };
+
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].ris.cosThetaTx.data()), py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaPathWrapper::GetCosThetaRx(uint32_t sionnaPathType) const
+{
+	std::array<size_t, 3> shape = { m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
+	std::array<size_t, 3> stride = { shape[1] * shape[2] * sizeof(float),
+									 shape[2] * sizeof(float),
+									 sizeof(float) };
+
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].ris.cosThetaRx.data()), py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaPathWrapper::GetDistanceTxRis(uint32_t sionnaPathType) const
+{
+	std::array<size_t, 3> shape = { m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
+	std::array<size_t, 3> stride = { shape[1] * shape[2] * sizeof(float),
+									 shape[2] * sizeof(float),
+									 sizeof(float) };
+
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].ris.distanceTxRis.data()), py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaPathWrapper::GetDistanceRxRis(uint32_t sionnaPathType) const
+{
+	std::array<size_t, 3> shape = { m_SionnaData.receivers.size(), m_SionnaData.transmitters.size(), m_SionnaData.maxLinkPaths[sionnaPathType] };
+	std::array<size_t, 3> stride = { shape[1] * shape[2] * sizeof(float),
+									 shape[2] * sizeof(float),
+									 sizeof(float) };
+
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(m_SionnaData.paths[sionnaPathType].ris.distanceRxRis.data()), py::none());
+}
+
 int32_t SionnaPathWrapper::GetMaxLinkPaths(uint32_t sionnaPathType) const
 {
 	return static_cast<int32_t>(m_SionnaData.maxLinkPaths[sionnaPathType]);
+}
+
+Nimbus::RisData RisWrapper::ToData() const
+{
+	Nimbus::RisData result{};
+
+	result.cellWorldPositions = std::vector<glm::vec3>(reinterpret_cast<const glm::vec3*>(cellWorldPositions.data()), reinterpret_cast<const glm::vec3*>(cellWorldPositions.data()) + cellWorldPositions.shape(0));
+	result.objectIds = std::vector<uint32_t>(reinterpret_cast<const uint32_t*>(objectIds.data()), reinterpret_cast<const uint32_t*>(objectIds.data()) + objectIds.shape(0));
+	result.cellObjectIds = std::vector<uint32_t>(reinterpret_cast<const uint32_t*>(cellObjectIds.data()), reinterpret_cast<const uint32_t*>(cellObjectIds.data()) + cellObjectIds.shape(0));
+	result.normals = std::vector<glm::vec3>(reinterpret_cast<const glm::vec3*>(normals.data()), reinterpret_cast<const glm::vec3*>(normals.data()) + normals.shape(0));
+	result.centers = std::vector<glm::vec3>(reinterpret_cast<const glm::vec3*>(centers.data()), reinterpret_cast<const glm::vec3*>(centers.data()) + centers.shape(0));
+	result.size = std::vector<glm::vec2>(reinterpret_cast<const glm::vec2*>(size.data()), reinterpret_cast<const glm::vec2*>(size.data()) + size.shape(0));
+	return result;
 }

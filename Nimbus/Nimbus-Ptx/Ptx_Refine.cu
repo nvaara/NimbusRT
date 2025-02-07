@@ -23,6 +23,11 @@ extern "C" __global__ void __closesthit__ST_TR()
 	OnClosestHitTriangle(data.rtParams.env);
 }
 
+extern "C" __global__ void __closesthit__ST_RIS()
+{
+	OnClosestHitRIS(data.rtParams.env);
+}
+
 extern "C" __global__ void __intersection__ST()
 {
 	OnIntersect(data.rtParams);
@@ -65,6 +70,22 @@ inline __device__ bool AddReceivedRefinedPath(const Nimbus::PathInfo& pathInfo, 
 			data.receivedPathData.labels[recvDataIndex + i] = refineData[i + 1].label;
 			data.receivedPathData.materials[recvDataIndex + i] = refineData[i + 1].material;
 		}
+	}
+	return result;
+}
+
+inline __device__ bool AddReceivedRISPath(const Nimbus::PathInfo& pathInfo, const glm::vec3& hitPoint, const glm::vec3& normal, uint32_t label, uint32_t objectId)
+{
+	uint32_t index = atomicAdd(data.receivedPathCount, 1u);
+	bool result = index < data.numReceivedPathsMax;
+	if (result)
+	{
+		data.receivedPathData.pathInfos[index] = pathInfo;
+		uint32_t recvDataIndex = index * data.maxNumIa;
+		data.receivedPathData.interactions[recvDataIndex] = hitPoint;
+		data.receivedPathData.normals[recvDataIndex] = normal;
+		data.receivedPathData.labels[recvDataIndex] = label;
+		data.receivedPathData.materials[recvDataIndex] = objectId;
 	}
 	return result;
 }
@@ -209,4 +230,53 @@ extern "C" __global__ void __raygen__RefineDiffraction()
 			return;
 	}
 	atomicOr(&data.pathsProcessed[edgeMask.x], edgeMask.y);
+}
+
+extern "C" __global__ void __raygen__ComputeRisPaths()
+{
+	uint32_t cellIndex = optixGetLaunchIndex().x;
+	uint32_t rxID = optixGetLaunchIndex().y;
+	glm::vec3 tx = data.transmitters[data.currentTxID];
+	glm::vec3 rx = data.receivers[rxID];
+	glm::vec3 cell = data.rtParams.env.ris.cellWorldPositions[cellIndex];
+
+	glm::uvec2 cellMask = Nimbus::Utils::GetBinBitMask32(cellIndex * data.numRx + rxID);
+	if (data.pathsProcessed[cellMask.x] & cellMask.y)
+		return;
+
+	Ray rayTx = Ray(tx, cell);
+	Ray rayRx = Ray(rx, cell);
+	bool txHit = rayTx.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.rayBias);
+	bool rxHit = rayRx.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.rayBias);
+
+	if (txHit && rxHit && rayTx.IsHitRIS() && rayRx.IsHitRIS())
+	{
+		const Ray::Payload& payloadTx = rayTx.GetPayload();
+		const Ray::Payload& payloadRx = rayRx.GetPayload();
+
+		glm::vec3 hitPointTx = rayTx.GetOrigin() + rayTx.GetDirection() * payloadTx.t;
+		glm::vec3 hitPointRx = rayRx.GetOrigin() + rayRx.GetDirection() * payloadRx.t;
+		glm::vec3 diff = hitPointRx - hitPointTx;
+		float distDiff = glm::abs(glm::dot(diff, diff));
+		constexpr float distDiffThreshold = 1e-4f;
+		
+		bool validSideTx = glm::dot(rayTx.GetDirection(), payloadTx.normal) < 0.0f;
+		bool validSideRx = glm::dot(rayRx.GetDirection(), payloadRx.normal) < 0.0f;
+		bool sameLabel = payloadTx.label == payloadRx.label;
+		if (validSideTx && validSideRx && sameLabel && distDiff < distDiffThreshold)
+		{
+			Nimbus::PathInfo path{};
+			path.txID = data.currentTxID;
+			path.pathType = Nimbus::PathType::RIS;
+			path.numInteractions = 1u;
+			path.rxID = rxID;
+			path.timeDelay = (payloadTx.t + payloadRx.t) * Nimbus::Constants::InvLightSpeedInVacuum;
+
+			uint32_t label = cellIndex;
+			uint32_t objectId = payloadTx.label;
+			if (!AddReceivedRISPath(path, hitPointTx, payloadTx.normal, label, objectId))
+				return;
+		}
+	}
+	atomicOr(&data.pathsProcessed[cellMask.x], cellMask.y);
 }

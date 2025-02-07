@@ -113,6 +113,14 @@ namespace Nimbus
 					scattering.distFromLastIaToRx.resize(pathBufferElements);
 					break;
 				}
+				case SionnaPathType::RIS:
+				{
+					ris.cosThetaTx.resize(pathBufferElements);
+					ris.cosThetaRx.resize(pathBufferElements);
+					ris.distanceTxRis.resize(pathBufferElements);
+					ris.distanceRxRis.resize(pathBufferElements);
+					break;
+				}
 				default:
 					break;
 				}
@@ -133,7 +141,6 @@ namespace Nimbus
 			std::vector<float> aoaElevation;
 			std::vector<float> aoaAzimuth;
 
-			//Scattering specific
 			struct 
 			{
 				std::vector<uint32_t> lastObjects;
@@ -145,14 +152,12 @@ namespace Nimbus
 				std::vector<float> distFromLastIaToRx;
 
 			} scattering;
-			//Diffraction specific
 			struct
 			{
-				
-			} diffraction;
-			struct
-			{
-				
+				std::vector<float> cosThetaTx;
+				std::vector<float> cosThetaRx;
+				std::vector<float> distanceTxRis;
+				std::vector<float> distanceRxRis;
 			} ris;
 		};
 

@@ -2,9 +2,12 @@ from ._C import NativeRTParams
 
 class RTParams(NativeRTParams):
     def __init__(self,
-                 max_num_interactions=2,
+                 max_depth=2,
+                 los=True,
+                 reflection=True,
                  scattering=False,
                  diffraction=False,
+                 ris=False,
                  sample_radius=0.015,
                  variance_factor=2.0,
                  sdf_threshold=0.003,
@@ -18,9 +21,12 @@ class RTParams(NativeRTParams):
                  ray_bias=0.05):
 
         super().__init__()
-        self._max_num_interactions = max_num_interactions
+        self._max_depth = max_depth
+        self._los = los
+        self._reflection = reflection
         self._scattering = scattering
         self._diffraction = diffraction
+        self._ris = ris
         self._sample_radius = sample_radius
         self._variance_factor = variance_factor
         self._sdf_threshold = sdf_threshold
@@ -56,6 +62,14 @@ class RTParams(NativeRTParams):
     @diffraction.setter
     def diffraction(self, value):
         self._diffraction = value
+
+    @property
+    def ris(self):
+        return self._ris
+
+    @ris.setter
+    def ris(self, value):
+        self._ris = value
 
     @property
     def sample_radius(self):

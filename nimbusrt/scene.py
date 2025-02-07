@@ -5,7 +5,7 @@ from sionna.constants import PI
 from plyfile import PlyData
 import numpy as np
 from .params import RTParams
-from ._C import NativeScene
+from ._C import NativeScene, NativeRisData
 from . import itu
 
 
@@ -24,6 +24,7 @@ class Scene():
         self._sionna_scene = srt.Scene("__empty__", dtype=dtype)
         self._sionna_scene._clear()
         self._itu_materials = itu.get_materials(dtype)
+        self._num_material_labels = 0
         self._sionna_scene.radio_material_callable = self
 
     def set_triangle_mesh(self, mesh, voxel_size=0.0625, use_face_normals=False):
@@ -39,7 +40,7 @@ class Scene():
         vertices, normals, vertex_indices, face_properties, edges = self._get_triangle_mesh(ply_data)
         self._init_materials(np.max(face_properties["material"]), edges)
         self._init_edges(edges)
-        return self._native_scene._set_triangle_mesh(vertices, normals, vertex_indices, face_properties, voxel_size, use_face_normals)
+        return self._native_scene._set_triangle_mesh(vertices, normals, vertex_indices, face_properties, edges, voxel_size, use_face_normals)
 
     def set_point_cloud(self, cloud, voxel_size=0.0625, aabb_bias=0.01):
         if isinstance(cloud, str):
@@ -172,6 +173,10 @@ class Scene():
     def center(self):
         raise NotImplementedError()
 
+    @property
+    def num_material_labels(self):
+        return self._num_material_labels
+
     def get(self, name):
        return self._sionna_scene.get(name)
 
@@ -185,28 +190,12 @@ class Scene():
         return self.compute_fields(self.trace_paths(params))
 
     def trace_paths(self, params: RTParams):
-        tx_pos = [tx.position for tx in self.transmitters.values()]
-        tx_pos = tf.stack(tx_pos, axis=0)
-        rx_pos = [rx.position for rx in self.receivers.values()]
-        rx_pos = tf.stack(rx_pos, axis=0)
-
-        if not self.synthetic_array:
-            rx_rot_mat, tx_rot_mat = self._solver_paths._get_tx_rx_rotation_matrices()
-            rx_rel_ant_pos, tx_rel_ant_pos = self._solver_paths._get_antennas_relative_positions(rx_rot_mat, tx_rot_mat)
-
-        if self.synthetic_array:
-            sources = tx_pos
-            targets = rx_pos
-        else:
-            sources = tf.expand_dims(tx_pos, axis=1) + tx_rel_ant_pos
-            sources = tf.reshape(sources, [-1, 3])
-            targets = tf.expand_dims(rx_pos, axis=1) + rx_rel_ant_pos
-            targets = tf.reshape(targets, [-1, 3])
-        print(sources.shape)
-        print(targets.shape)
+        txs, rxs = self._build_txs_rxs()
+        ris_data = self._build_ris_data()
         result = self._native_scene._compute_sionna_path_data(params,
-                                                              sources.numpy(),
-                                                              targets.numpy())
+                                                              txs,
+                                                              rxs,
+                                                              ris_data)
         return self._convert_to_sionna(result)
 
     def compute_fields(self, path_tuple):
@@ -218,7 +207,7 @@ class Scene():
         relative_permittivity  = tf.zeros(objects.shape, dtype=self.dtype)
         scattering_coefficient = tf.zeros(objects.shape, dtype=self.dtype.real_dtype)
         xpd_coefficient = tf.zeros(objects.shape, dtype=self.dtype.real_dtype)
-
+        
         for rm_key, rm in radio_mats.items():
             if not rm_key.isdigit():
                 continue
@@ -240,13 +229,18 @@ class Scene():
         if edges is not None:
             max_mat_index = max(max(max_mat_index, np.max(edges["material1"])), np.max(edges["material2"]))
 
-        material_count = max_mat_index + 1
-        for i in range(material_count):
+        self._num_material_labels = max_mat_index + 1
+
+        for i in range(self._num_material_labels):
             str_i = str(i)
             self._sionna_scene.add(srt.RadioMaterial(str_i))
             self._sionna_scene._scene_objects[str(i)] = srt.SceneObject(str_i) #Workaround for object velocity.
             self._sionna_scene._scene_objects[str(i)].object_id = i
             self._sionna_scene._scene_objects[str(i)]._radio_material = self._sionna_scene.get(str_i)
+        
+        #For RIS
+        self._sionna_scene.add(self._itu_materials["itu_metal"])
+        
 
     @property
     def _solver_paths(self):
@@ -265,6 +259,53 @@ class Scene():
             e_hat, edge_l = srt.utils.normalize(srt.utils.cross(self._solver_paths._wedges_normals[...,0,:],self._solver_paths._wedges_normals[...,1,:]))
             self._solver_paths._wedges_e_hat, self._solver_paths._wedges_length = e_hat, edge_l
             self._solver_paths._wedges_objects = tf.convert_to_tensor(wedge_objects, dtype=tf.int32)
+
+    def _build_ris_data(self):
+        ris_world_positions = []
+        ris_object_ids = []
+        ris_cell_object_ids = []
+        ris_normals = []
+        ris_centers = []
+        ris_sizes = []
+
+        for ris in self._sionna_scene.ris.values():
+            ris_world_positions.append(ris.cell_world_positions)
+            ris_object_ids.append(ris.object_id)
+            ris_cell_object_ids.append(np.full((ris_world_positions[-1].shape[0],), ris.object_id))
+            ris_normals.append(ris.world_normal)
+            ris_centers.append(ris.position)
+            ris_sizes.append(ris.size)
+
+        ris_data = NativeRisData()
+        if len(self._sionna_scene.ris):
+            ris_data.cell_world_positions = np.concatenate(ris_world_positions, axis=0)
+            ris_data.object_ids = np.asarray(ris_object_ids)
+            ris_data.cell_object_ids = np.concatenate(ris_cell_object_ids, axis=0)
+            ris_data.normals = np.stack(ris_normals)
+            ris_data.centers = np.stack(ris_centers, axis=0)
+            ris_data.size = np.stack(ris_sizes)
+        return ris_data
+
+    def _build_txs_rxs(self):
+        tx_pos = [tx.position for tx in self.transmitters.values()]
+        tx_pos = tf.stack(tx_pos, axis=0)
+        rx_pos = [rx.position for rx in self.receivers.values()]
+        rx_pos = tf.stack(rx_pos, axis=0)
+
+        if not self.synthetic_array:
+            rx_rot_mat, tx_rot_mat = self._solver_paths._get_tx_rx_rotation_matrices()
+            rx_rel_ant_pos, tx_rel_ant_pos = self._solver_paths._get_antennas_relative_positions(rx_rot_mat, tx_rot_mat)
+
+        if self.synthetic_array:
+            sources = tx_pos
+            targets = rx_pos
+        else:
+            sources = tf.expand_dims(tx_pos, axis=1) + tx_rel_ant_pos
+            sources = tf.reshape(sources, [-1, 3])
+            targets = tf.expand_dims(rx_pos, axis=1) + rx_rel_ant_pos
+            targets = tf.reshape(targets, [-1, 3])
+        
+        return sources.numpy(), targets.numpy() 
 
     def _get_point_cloud(self, ply_data: PlyData):
             types = [
@@ -386,6 +427,7 @@ class Scene():
             ref_paths.vertices = tf.convert_to_tensor(sionna_path_data.vertices(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
             ref_paths.objects = tf.convert_to_tensor(sionna_path_data.objects(srt.Paths.SPECULAR), dtype=tf.int32)
             ref_paths.mask = tf.convert_to_tensor(sionna_path_data.mask(srt.Paths.SPECULAR), dtype=tf.bool)
+
             ref_paths.theta_t = tf.convert_to_tensor(sionna_path_data.theta_t(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
             ref_paths.theta_r = tf.convert_to_tensor(sionna_path_data.theta_r(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
             ref_paths.phi_t = tf.convert_to_tensor(sionna_path_data.phi_t(srt.Paths.SPECULAR), dtype=tf.complex64.real_dtype)
@@ -425,7 +467,7 @@ class Scene():
             tmp_sct_paths.scat_last_normals = tf.convert_to_tensor(sionna_path_data.scat_last_normals(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_src_2_last_int_dist = tf.convert_to_tensor(sionna_path_data.scat_src_2_last_int_dist(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_2_target_dist = tf.convert_to_tensor(sionna_path_data.scat_2_target_dist(srt.Paths.SCATTERED))
-            #Due to our discrete deterministic area-based scattering, we pre-apply the appropriate scaling cos(theta_i)*dA into scat_2_target_dist
+            #Due to our discrete deterministic area-based scattering, we apply the appropriate scaling cos(theta_i)*dA into scat_2_target_dist
         
         #Diffraction
         if sionna_path_data.max_link_paths(srt.Paths.DIFFRACTED) > 0:
@@ -447,6 +489,26 @@ class Scene():
         
         #RIS
         if sionna_path_data.max_link_paths(srt.Paths.RIS) > 0:
-            raise Exception("RIS Sionna paths not supported yet.")
+            ris_paths.vertices = tf.convert_to_tensor(sionna_path_data.vertices(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            ris_paths.objects = tf.convert_to_tensor(sionna_path_data.objects(srt.Paths.RIS), dtype=tf.int32)
+            ris_paths.mask = tf.convert_to_tensor(sionna_path_data.mask(srt.Paths.RIS), dtype=tf.bool)
+            ris_paths.theta_t = tf.convert_to_tensor(sionna_path_data.theta_t(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            ris_paths.theta_r = tf.convert_to_tensor(sionna_path_data.theta_r(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            ris_paths.phi_t = tf.convert_to_tensor(sionna_path_data.phi_t(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            ris_paths.phi_r = tf.convert_to_tensor(sionna_path_data.phi_r(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            ris_paths.tau = tf.convert_to_tensor(sionna_path_data.tau(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+
+            tmp_ris_paths.normals = tf.convert_to_tensor(sionna_path_data.normals(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.k_tx = tf.convert_to_tensor(sionna_path_data.k_tx(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.k_rx = tf.convert_to_tensor(sionna_path_data.k_rx(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.total_distance = tf.convert_to_tensor(sionna_path_data.total_distance(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.k_i = tf.convert_to_tensor(sionna_path_data.k_i(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.k_r = tf.convert_to_tensor(sionna_path_data.k_r(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            
+            tmp_ris_paths.cos_theta_i = tf.convert_to_tensor(sionna_path_data.cos_theta_i(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.cos_theta_m = tf.convert_to_tensor(sionna_path_data.cos_theta_m(srt.Paths.RIS), dtype=tf.complex64.real_dtype)
+            tmp_ris_paths.distances = tf.convert_to_tensor(np.stack((sionna_path_data.distance_tx_ris(srt.Paths.RIS),
+                                                                    sionna_path_data.distance_rx_ris(srt.Paths.RIS)), axis=0),
+                                                                    dtype=tf.complex64.real_dtype)
 
         return ref_paths, dif_paths, sct_paths, ris_paths, tmp_ref_paths, tmp_dif_paths, tmp_sct_paths, tmp_ris_paths

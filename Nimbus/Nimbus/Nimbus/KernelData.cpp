@@ -19,7 +19,9 @@ namespace Nimbus
 {
     namespace
     {
-        void SetModule(RTModule& module, std::array<OptixProgramGroupDesc, 3>& pgDescs)
+        std::unique_ptr<KernelData> s_KernelData = nullptr;
+
+        void SetModule(RTModule& module, std::array<OptixProgramGroupDesc, 4>& pgDescs)
         {
             for (OptixProgramGroupDesc& desc : pgDescs)
             {
@@ -73,6 +75,7 @@ namespace Nimbus
             && s_KernelData->m_StRTModule
             && s_KernelData->m_StVisModule
             && s_KernelData->m_StRefineModule
+
             && s_KernelData->m_StVisPipeline
             && s_KernelData->m_StTransmitPipeline
             && s_KernelData->m_StTransmitLOSPipeline
@@ -80,6 +83,7 @@ namespace Nimbus
             && s_KernelData->m_StRefineSpecularPipeline
             && s_KernelData->m_StRefineScattererPipeline
             && s_KernelData->m_StRefineDiffractionPipeline
+            && s_KernelData->m_StComputeRISPathsPipeline
 
             && s_KernelData->m_StTrVisPipeline
             && s_KernelData->m_StTrTransmitPipeline
@@ -87,12 +91,18 @@ namespace Nimbus
             && s_KernelData->m_StTrPropagatePipeline
             && s_KernelData->m_StTrRefineSpecularPipeline
             && s_KernelData->m_StTrRefineScattererPipeline
-            && s_KernelData->m_StTrRefineDiffractionPipeline;
+            && s_KernelData->m_StTrRefineDiffractionPipeline
+            && s_KernelData->m_StTrComputeRISPathsPipeline;
     }
 
     void KernelData::Destroy()
     {
         s_KernelData.reset(nullptr);
+    }
+
+    const KernelData& KernelData::Get()
+    {
+        return *s_KernelData;
     }
 
     KernelData::KernelData()
@@ -118,12 +128,12 @@ namespace Nimbus
         OptixPipelineCompileOptions pipelineCompileOptions{};
         pipelineCompileOptions.numPayloadValues = 2;
         pipelineCompileOptions.numAttributeValues = 4;
-        pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
+        pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_ANY;
         pipelineCompileOptions.pipelineLaunchParamsVariableName = "data";
 
         OptixPipelineLinkOptions pipelineLinkOptions{};
         pipelineLinkOptions.maxTraceDepth = 1;
-        std::array<OptixProgramGroupDesc, 3> pgDescs{};
+        std::array<OptixProgramGroupDesc, 4> pgDescs{};
         m_StRTModule = RTModule(reinterpret_cast<const char*>(Ptx_Trace), pipelineCompileOptions, moduleCompileOptions);
         m_StRefineModule = RTModule(reinterpret_cast<const char*>(Ptx_Refine), pipelineCompileOptions, moduleCompileOptions);
         m_StVisModule = RTModule(reinterpret_cast<const char*>(Ptx_Visibility), pipelineCompileOptions, moduleCompileOptions);
@@ -137,6 +147,11 @@ namespace Nimbus
         pointCloudDesc.hitgroup.entryFunctionNameCH = "__closesthit__ST";
         pointCloudDesc.hitgroup.entryFunctionNameIS = "__intersection__ST";
         
+        OptixProgramGroupDesc risDesc{};
+        risDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+        risDesc.hitgroup.entryFunctionNameCH = "__closesthit__ST_RIS";
+        pgDescs[3] = risDesc;
+
         OptixProgramGroupDesc triangleDesc{};
         triangleDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
         triangleDesc.hitgroup.entryFunctionNameCH = "__closesthit__ST_TR";
@@ -203,5 +218,14 @@ namespace Nimbus
         pgDescs[2] = triangleDesc;
         SetModule(m_StRefineModule, pgDescs);
         m_StTrRefineDiffractionPipeline = RTPipeline(pgDescs.data(), pgDescs.size(), pipelineCompileOptions, pipelineLinkOptions);
+
+        pgDescs[0].raygen.entryFunctionName = "__raygen__ComputeRisPaths";
+        pgDescs[2] = pointCloudDesc;
+        SetModule(m_StRefineModule, pgDescs);
+        m_StComputeRISPathsPipeline = RTPipeline(pgDescs.data(), pgDescs.size(), pipelineCompileOptions, pipelineLinkOptions);
+
+        pgDescs[2] = triangleDesc;
+        SetModule(m_StRefineModule, pgDescs);
+        m_StTrComputeRISPathsPipeline = RTPipeline(pgDescs.data(), pgDescs.size(), pipelineCompileOptions, pipelineLinkOptions);
     }
 }

@@ -4,6 +4,7 @@ set(CXX_SOURCES
                 Nimbus/CudaUtils.hpp
                 Nimbus/DeviceBuffer.cpp
                 Nimbus/DeviceBuffer.hpp
+                Nimbus/Environment.cpp
                 Nimbus/Environment.hpp
                 Nimbus/Hash.hpp
                 Nimbus/KernelData.cpp

@@ -58,6 +58,16 @@ namespace Nimbus
         uint32_t edgeID;
     };
 
+    struct RisData
+    {
+        std::vector<glm::vec3> cellWorldPositions;
+        std::vector<uint32_t> objectIds;
+        std::vector<uint32_t> cellObjectIds;
+        std::vector<glm::vec3> normals;
+        std::vector<glm::vec3> centers;
+        std::vector<glm::vec2> size;
+    };
+
     struct Face
     {
         glm::vec3 normal;
@@ -163,6 +173,14 @@ namespace Nimbus
         VoxelWorldInfo vwInfo;
         const DiffractionEdge* edges;
         uint32_t edgeCount;
+        struct
+        {
+            const uint32_t* objectIds;
+            const glm::vec3* normals;
+            const glm::vec3* cellWorldPositions;
+            const uint32_t* cellObjectIds;
+            uint32_t cellCount;
+        } ris;
         union
         {
             struct
@@ -295,8 +313,11 @@ namespace Nimbus
     struct ScatterTracingParams
     {
         uint32_t maxNumInteractions;
+        bool los;
+        bool reflection;
         bool scattering;
         bool diffraction;
+        bool ris;
         float sampleRadius;
         float varianceFactor;
         float sdfThreshold;

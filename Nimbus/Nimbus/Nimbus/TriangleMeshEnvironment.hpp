@@ -17,15 +17,16 @@ namespace Nimbus
 				  const glm::uvec3* indices,
 				  const Face* faces,
 				  size_t numFaces,
+				  const EdgeData* edges,
+				  size_t numEdges,
 				  float voxelSize,
 				  bool useFaceNormals);
 
 		float GetVoxelSize() const override { return m_VoxelSize; }
 		Type GetType() const override { return Type::TriangleMesh; }
-		EnvironmentData GetGpuEnvironmentData() const override;
+		EnvironmentData GetGpuEnvironmentData() override;
 		uint32_t GetRtPointCount() const override { return m_RtPointCount; }
 		const Aabb& GetAabb() const override { return m_Aabb; }
-		const std::vector<DiffractionEdge> GetEdges() const override { return m_Edges; }
 
 		void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 		void DetermineLosPaths(const DeviceBuffer& params, const glm::uvec3& dims) const override;
@@ -34,6 +35,7 @@ namespace Nimbus
 		void RefineSpecular(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 		void RefineScatterer(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 		void RefineDiffraction(const DeviceBuffer& params, const glm::uvec3& dims) const override;
+		void ComputeRISPaths(const DeviceBuffer& params, const glm::uvec3& dims) const override;
 
 	private:
 		bool ComputeAabb(const glm::vec3* vertices, size_t numVertices);
@@ -58,8 +60,5 @@ namespace Nimbus
 		DeviceBuffer m_IndexBuffer;
 		DeviceBuffer m_FaceBuffer;
 		DeviceBuffer m_VoxelToRtPointIndexMapBuffer;
-		AccelerationStructure m_AccelerationStructure;
-		std::vector<DiffractionEdge> m_Edges;
-		DeviceBuffer m_EdgeBuffer;
 	};
 }

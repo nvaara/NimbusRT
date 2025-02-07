@@ -71,8 +71,26 @@ public:
 	py::array_t<float, py::array::c_style> GetScatDistToLastIa(uint32_t sionnaPathType) const;
 	py::array_t<float, py::array::c_style> GetScatDistFromLastIaToRx(uint32_t sionnaPathType) const;
 
+	py::array_t<float, py::array::c_style> GetCosThetaTx(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetCosThetaRx(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetDistanceTxRis(uint32_t sionnaPathType) const;
+	py::array_t<float, py::array::c_style> GetDistanceRxRis(uint32_t sionnaPathType) const;
+
 	int32_t GetMaxLinkPaths(uint32_t sionnaPathType) const;
 
 private:
 	Nimbus::PathStorage::SionnaPathData m_SionnaData;
+};
+
+struct RisWrapper
+{
+	RisWrapper() = default;
+	Nimbus::RisData ToData() const;
+
+	py::array_t<float, py::array::c_style> cellWorldPositions;
+	py::array_t<int32_t, py::array::c_style> objectIds;
+	py::array_t<int32_t, py::array::c_style> cellObjectIds;
+	py::array_t<float, py::array::c_style> normals;
+	py::array_t<float, py::array::c_style> centers;
+	py::array_t<float, py::array::c_style> size;
 };

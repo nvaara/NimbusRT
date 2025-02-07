@@ -113,17 +113,27 @@ namespace Nimbus
 				m_SbtTable.raygenRecord = ptr;
 				break;
 			case OPTIX_PROGRAM_GROUP_KIND_MISS:
-				m_SbtTable.missRecordBase = ptr;
-				m_SbtTable.missRecordStrideInBytes = sizeof(SbtRecord);
-				m_SbtTable.missRecordCount = 1;
+			{
+				if (!m_SbtTable.missRecordBase)
+				{
+					m_SbtTable.missRecordBase = ptr;
+					m_SbtTable.missRecordStrideInBytes = sizeof(SbtRecord);
+				}
+				m_SbtTable.missRecordCount++;
 				break;
+			}
 			case OPTIX_PROGRAM_GROUP_KIND_EXCEPTION:
 				break;
 			case OPTIX_PROGRAM_GROUP_KIND_HITGROUP:
-				m_SbtTable.hitgroupRecordBase = ptr;
-				m_SbtTable.hitgroupRecordStrideInBytes = sizeof(SbtRecord);
-				m_SbtTable.hitgroupRecordCount = 1;
+			{
+				if (!m_SbtTable.hitgroupRecordBase)
+				{
+					m_SbtTable.hitgroupRecordBase = ptr;
+					m_SbtTable.hitgroupRecordStrideInBytes = sizeof(SbtRecord);
+				}
+				m_SbtTable.hitgroupRecordCount++;
 				break;
+			}
 			case OPTIX_PROGRAM_GROUP_KIND_CALLABLES:
 				break;
 			}
@@ -168,6 +178,16 @@ namespace Nimbus
 		buildInput.triangleArray.flags = &inputFlags;
 		buildInput.triangleArray.numSbtRecords = 1;
 
+		return AccelerationStructure(buildInput);
+	}
+
+	AccelerationStructure AccelerationStructure::CreateFromInstances(const Nimbus::DeviceBuffer& instanceBuffer, uint32_t numInstances)
+	{
+		OptixBuildInput buildInput{};
+		buildInput.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+		buildInput.instanceArray.instances = instanceBuffer.GetRawHandle();
+		buildInput.instanceArray.instanceStride = 0u;
+		buildInput.instanceArray.numInstances = numInstances;
 		return AccelerationStructure(buildInput);
 	}
 

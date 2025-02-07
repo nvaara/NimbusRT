@@ -9,7 +9,7 @@ namespace Nimbus
 	public:
 		static bool Initialize();
 		static void Destroy();
-		static const KernelData& Get() { return *s_KernelData; }
+		static const KernelData& Get();
 
 		KernelData(const KernelData&) = delete;
 		KernelData(KernelData&&) = delete;
@@ -29,6 +29,7 @@ namespace Nimbus
 		const RTPipeline& GetStRefineSpecularPipeline() const { return m_StRefineSpecularPipeline; }
 		const RTPipeline& GetStRefineScattererPipeline() const { return m_StRefineScattererPipeline; }
 		const RTPipeline& GetStRefineDiffractionPipeline() const { return m_StRefineDiffractionPipeline; }
+		const RTPipeline& GetStComputeRISPathsPipeline() const { return m_StComputeRISPathsPipeline; }
 
 		const RTPipeline& GetStTrVisPipeline() const { return m_StTrVisPipeline; }
 		const RTPipeline& GetStTrTransmitPipeline() const { return m_StTrTransmitPipeline; }
@@ -37,13 +38,12 @@ namespace Nimbus
 		const RTPipeline& GetStTrRefineSpecularPipeline() const { return m_StTrRefineSpecularPipeline; }
 		const RTPipeline& GetStTrRefineScattererPipeline() const { return m_StTrRefineScattererPipeline; }
 		const RTPipeline& GetStTrRefineDiffractionPipeline() const { return m_StTrRefineDiffractionPipeline; }
+		const RTPipeline& GetStTrComputeRISPathsPipeline() const { return m_StTrComputeRISPathsPipeline; }
 
 	private:
 		KernelData();
 
 	private:
-		inline static std::unique_ptr<KernelData> s_KernelData = nullptr;
-
 		Module m_StModule;
 		Kernel m_StCreatePrimitivesKernel;
 		DeviceBuffer m_StConstantBuffer;
@@ -63,7 +63,8 @@ namespace Nimbus
 		RTPipeline m_StRefineSpecularPipeline;
 		RTPipeline m_StRefineScattererPipeline;
 		RTPipeline m_StRefineDiffractionPipeline;
-		
+		RTPipeline m_StComputeRISPathsPipeline;
+
 		RTPipeline m_StTrVisPipeline;
 		RTPipeline m_StTrTransmitPipeline;
 		RTPipeline m_StTrTransmitLOSPipeline;
@@ -71,5 +72,6 @@ namespace Nimbus
 		RTPipeline m_StTrRefineSpecularPipeline;
 		RTPipeline m_StTrRefineScattererPipeline;
 		RTPipeline m_StTrRefineDiffractionPipeline;
+		RTPipeline m_StTrComputeRISPathsPipeline;
 	};
 }

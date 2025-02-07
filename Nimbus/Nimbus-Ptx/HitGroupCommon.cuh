@@ -79,16 +79,26 @@ inline __device__ void OnClosestHitTriangle(const Nimbus::EnvironmentData& env)
 	auto c = Nimbus::Utils::GetVoxelCoord(hitPoint, env.vwInfo);
 	auto c2 = Nimbus::Utils::GetVoxelCoord(hitPointBiased2, env.vwInfo);
 
-	if (rtPointIndex == Nimbus::Constants::InvalidPointIndex)
-	{
-		printf("Invalid point index found. %u, %u %u %u\n", primitiveIndex, c2.x, c2.y, c2.z);
-	}
 	Ray::Payload* payload = Nimbus::Utils::UnpackPointer32<Ray::Payload>(optixGetPayload_0(), optixGetPayload_1());
 	payload->t = t * static_cast<float>(rtPointIndex != Nimbus::Constants::InvalidPointIndex);
 	payload->label = face.label;
 	payload->material = face.material;
 	payload->normal = Nimbus::Utils::FixNormal(rayDir, GetNormalForTriangle(primitiveIndex, env));
 	payload->rtPointIndex = rtPointIndex;
+}
+
+inline __device__ void OnClosestHitRIS(const Nimbus::EnvironmentData& env)
+{
+	uint32_t risIndex = optixGetPrimitiveIndex() / 2u;
+	Ray::Payload* payload = Nimbus::Utils::UnpackPointer32<Ray::Payload>(optixGetPayload_0(), optixGetPayload_1());
+	uint32_t objectId = env.ris.objectIds[risIndex];
+	glm::vec3 normal = env.ris.normals[risIndex];
+
+	payload->t = optixGetRayTmax();
+	payload->label = objectId;
+	payload->material = Nimbus::Constants::InvalidPointIndex;
+	payload->normal = normal;
+	payload->rtPointIndex = Nimbus::Constants::RisHit;
 }
 
 inline __device__ bool OnIntersect(const Nimbus::RayTracingParams& rtParams)

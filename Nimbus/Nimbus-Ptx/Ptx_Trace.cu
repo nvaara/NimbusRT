@@ -23,6 +23,11 @@ extern "C" __global__ void __closesthit__ST_TR()
 	OnClosestHitTriangle(data.rtParams.env);
 }
 
+extern "C" __global__ void __closesthit__ST_RIS()
+{
+	OnClosestHitRIS(data.rtParams.env);
+}
+
 extern "C" __global__ void __intersection__ST()
 {
 	OnIntersect(data.rtParams);
@@ -90,10 +95,8 @@ extern "C" __global__ void __raygen__Propagate()
 	const glm::vec3& pos = data.propagationPathData.interactions[data.maxNumIa * optixGetLaunchIndex().x + path.numInteractions - 1];
 	Ray ray = Ray(pos, pos + path.direction * data.rtParams.rayMaxLength);
 
-	if (ray.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.rayBias))
-	{
+	if (ray.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.rayBias) && !ray.IsHitRIS())
 		WriteInteractionData(ray, path, pathIndex);
-	}
 	else
 		path.terminated = true;
 }

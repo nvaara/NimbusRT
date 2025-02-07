@@ -10,14 +10,15 @@ namespace Nimbus
 	public:
 		ScatterTracer();
 
-		bool Prepare(const Environment& env,
+		bool Prepare(Environment& env,
 					 const ScatterTracingParams& params,
 					 const glm::vec3* txs,
 					 uint32_t txCount,
 					 const glm::vec3* rxs,
-					 uint32_t rxCount);
+					 uint32_t rxCount,
+					 const RisData& risData);
 
-		bool CreateCoverageMapInfo(const Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers);
+		bool CreateCoverageMapInfo(Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers, const RisData& risData);
 		std::unique_ptr<PathStorage> Trace();
 
 	private:
@@ -50,8 +51,11 @@ namespace Nimbus
 		uint32_t m_TxCount;
 		uint32_t m_RxCount;
 		uint32_t m_MaxNumIa;
+		bool m_Los;
+		bool m_Reflection;
 		bool m_Scattering;
 		bool m_Diffraction;
+		bool m_Ris;
 		DeviceBuffer m_TransmitterBuffer;
 		DeviceBuffer m_ReceiverBuffer;
 		DeviceBuffer m_ScattererVisibleBuffer;

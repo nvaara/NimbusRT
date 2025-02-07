@@ -15,13 +15,16 @@ namespace Nimbus
         , m_TxCount(0u)
         , m_RxCount(0u)
         , m_MaxNumIa(0u)
+        , m_Los(false)
+        , m_Reflection(false)
         , m_Scattering(false)
         , m_Diffraction(false)
+        , m_Ris(false)
 	{
 
 	}
 
-    bool ScatterTracer::Prepare(const Environment& env, const ScatterTracingParams& params, const glm::vec3* txs, uint32_t txCount, const glm::vec3* rxs, uint32_t rxCount)
+    bool ScatterTracer::Prepare(Environment& env, const ScatterTracingParams& params, const glm::vec3* txs, uint32_t txCount, const glm::vec3* rxs, uint32_t rxCount, const RisData& risData)
     {
         m_Environment = &env;
         if (txCount == 0 || rxCount == 0)
@@ -30,12 +33,17 @@ namespace Nimbus
             return false;
         }
 
+        env.InitRisGasData(risData);
+
         m_IeCount = env.GetRtPointCount();
         m_TxCount = txCount;
         m_RxCount = rxCount;
         m_MaxNumIa = params.maxNumInteractions;
+        m_Los = params.los;
+        m_Reflection = params.reflection;
         m_Scattering = params.scattering;
         m_Diffraction = params.diffraction && env.HasEdges();
+        m_Ris = params.ris && risData.objectIds.size() > 0u;
 
         m_TransmitterBuffer = DeviceBuffer(sizeof(glm::vec3) * txCount);
         m_TransmitterBuffer.Upload(txs, txCount);
@@ -70,7 +78,7 @@ namespace Nimbus
         m_STRTData.rxVisible = m_RxVisibleBuffer.DevicePointerCast<uint32_t>();
         m_STRTData.numRx = static_cast<uint32_t>(rxCount);
 
-        uint32_t pathCount = glm::max(m_IeCount, m_Environment->GetEdgeCount());
+        uint32_t pathCount = glm::max(glm::max(glm::max(m_IeCount, m_Environment->GetEdgeCount()), m_Environment->GetRisPointCount()), m_RxCount);
 
         m_PathProcessedBuffer = DeviceBuffer(rxCount * pathCount / 8u + sizeof(uint32_t));
         m_PathProcessedBuffer.MemsetZero();
@@ -114,7 +122,7 @@ namespace Nimbus
         return true;
     }
 
-    bool ScatterTracer::CreateCoverageMapInfo(const Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers)
+    bool ScatterTracer::CreateCoverageMapInfo(Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers, const RisData& risData)
     {
         glm::uvec3 voxelDimensions = glm::uvec3(glm::ceil((env.GetAabb().max - env.GetAabb().min) / size));
         if (size <= 0.0f)
@@ -144,7 +152,7 @@ namespace Nimbus
         data.height = height;
 
         KernelData::Get().GetStCoverageConstantBuffer().Upload(&data, 1);
-        constexpr uint32_t blockSize = 32;
+        constexpr uint32_t blockSize = 256u;
         uint32_t gridCount = Utils::GetLaunchCount(data.numPoints, blockSize);
         KernelData::Get().GetStCoveragePointsKernel().LaunchAndSynchronize(glm::uvec3(gridCount, 1, 1), glm::uvec3(blockSize, 1, 1));
 
@@ -190,8 +198,11 @@ namespace Nimbus
 
     void ScatterTracer::DetermineLOSPaths()
     {
-        m_Environment->DetermineLosPaths(m_STRTDataBuffer, glm::uvec3(static_cast<uint32_t>(m_RxCount), 1, 1));
-        RetrieveReceivedPaths();
+        if (m_Los)
+        {
+          m_Environment->DetermineLosPaths(m_STRTDataBuffer, glm::uvec3(static_cast<uint32_t>(m_RxCount), 1, 1));
+          RetrieveReceivedPaths();
+        }
     }
 
     void ScatterTracer::Transmit(uint32_t txID)
@@ -215,12 +226,15 @@ namespace Nimbus
 
     void ScatterTracer::Refine()
     {
-        m_PathProcessedBuffer.MemsetZero();
-        do
+        if (m_Reflection)
         {
-            m_Environment->RefineSpecular(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, m_RxCount, 1u));
-        } while (RetrieveReceivedPaths());
-        
+            m_PathProcessedBuffer.MemsetZero();
+            do
+            {
+                m_Environment->RefineSpecular(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, m_RxCount, 1u));
+            } while (RetrieveReceivedPaths());
+        }
+
         if (m_Scattering)
         { 
             m_PathProcessedBuffer.MemsetZero();
@@ -264,6 +278,14 @@ namespace Nimbus
 
     void ScatterTracer::ComputeRisPaths()
     {
-        LOG("TODO: Compute RIS Paths.");
+        if (m_Ris)
+        {
+            glm::vec3 dims = glm::uvec3(m_Environment->GetRisPointCount(), m_RxCount, 1u);
+            m_PathProcessedBuffer.MemsetZero();
+            do
+            {
+                m_Environment->ComputeRISPaths(m_STRTDataBuffer, dims);
+            } while (RetrieveReceivedPaths());
+        }
     }
 }

@@ -27,11 +27,16 @@ extern "C" __global__ void __closesthit__ST_TR()
 	OnClosestHitTriangle(data.rtParams.env);
 }
 
+extern "C" __global__ void __closesthit__ST_RIS()
+{
+	OnClosestHitRIS(data.rtParams.env);
+}
+
 extern "C" __global__ void __raygen__Visibility()
 {
 	uint32_t rtPointIndex = optixGetLaunchIndex().x;
 	uint32_t rxID = optixGetLaunchIndex().y;
-	
+
 	Ray ray = Ray(data.receivers[rxID], data.rtParams.env.rtPoints[rtPointIndex]);
 	if (ray.Trace(data.rtParams.env.asHandle, data.rtParams.rayBias, data.rtParams.env.vwInfo.size) && ray.GetPayload().rtPointIndex == rtPointIndex)
 	{

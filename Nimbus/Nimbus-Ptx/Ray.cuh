@@ -16,6 +16,7 @@ public:
 	__device__ const glm::vec3& GetOrigin() const { return m_Origin; }
 	__device__ const glm::vec3& GetDirection() const { return m_Direction; }
 	__device__ float AbsoluteDistance() const { return m_Distance; }
+	__device__ bool IsHitRIS() const { return m_Payload.rtPointIndex == Nimbus::Constants::RisHit; }
 
 	struct Payload
 	{

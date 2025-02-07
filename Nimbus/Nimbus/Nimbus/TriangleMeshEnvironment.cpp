@@ -23,6 +23,8 @@ namespace Nimbus
 									   const glm::uvec3* indices,
 									   const Face* faces,
 									   size_t numFaces,
+									   const EdgeData* edges,
+									   size_t numEdges,
 									   float voxelSize,
 									   bool useFaceNormals)
 	{
@@ -52,22 +54,37 @@ namespace Nimbus
 			return false;
 		}
 
+		if (edges && !ProcessEdges(edges, numEdges))
+		{
+			LOG("Failed to process edges.");
+			return false;
+		}
+
 		return true;
 	}
 
-	EnvironmentData TriangleMeshEnvironment::GetGpuEnvironmentData() const
+	EnvironmentData TriangleMeshEnvironment::GetGpuEnvironmentData()
 	{
 		EnvironmentData result{};
-		result.asHandle = m_AccelerationStructure.GetRawHandle();
+
+		result.asHandle = GetAccelerationStructure();
 		result.rtPoints = m_RtPointsBuffer.DevicePointerCast<glm::vec3>();
 		result.vwInfo = m_VoxelWorldInfo;
 		result.edges = m_EdgeBuffer.DevicePointerCast<DiffractionEdge>();
 		result.edgeCount = static_cast<uint32_t>(m_Edges.size());
+		
 		result.triangle.useFaceNormals = m_UseFaceNormals;
 		result.triangle.indices = m_IndexBuffer.DevicePointerCast<uint32_t>();
 		result.triangle.normals = m_NormalBuffer.DevicePointerCast<glm::vec3>();
 		result.triangle.faces = m_FaceBuffer.DevicePointerCast<Face>();
 		result.triangle.voxelToRtPointIndexMap = m_VoxelToRtPointIndexMapBuffer.DevicePointerCast<uint32_t>();
+
+		result.ris.objectIds = m_RisData.objectIds.DevicePointerCast<uint32_t>();
+		result.ris.normals = m_RisData.normals.DevicePointerCast<glm::vec3>();
+		result.ris.cellWorldPositions = m_RisData.cellWorldPositions.DevicePointerCast<glm::vec3>();
+		result.ris.cellObjectIds = m_RisData.cellObjectIds.DevicePointerCast<uint32_t>();
+		result.ris.cellCount = m_RisData.cellCount;
+
 		return result;
 	}
 
@@ -106,6 +123,11 @@ namespace Nimbus
 		KernelData::Get().GetStTrRefineDiffractionPipeline().LaunchAndSynchronize(params, dims);
 	}
 
+	void TriangleMeshEnvironment::ComputeRISPaths(const DeviceBuffer& params, const glm::uvec3& dims) const
+	{
+		KernelData::Get().GetStTrComputeRISPathsPipeline().LaunchAndSynchronize(params, dims);
+	}
+
 	bool TriangleMeshEnvironment::ComputeAabb(const glm::vec3* vertices, size_t numVertices)
 	{
 		m_Aabb.min = *vertices;
@@ -115,7 +137,6 @@ namespace Nimbus
 			m_Aabb.min = glm::min(vertices[vertexIndex], m_Aabb.min);
 			m_Aabb.max = glm::max(vertices[vertexIndex], m_Aabb.max);
 		}
-
 
 		constexpr float bias = 0.01f;
 		m_Aabb.min -= bias;
