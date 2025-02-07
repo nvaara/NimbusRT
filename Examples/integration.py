@@ -12,10 +12,10 @@ if __name__ == "__main__":
     scene.frequency = 60e9
     params = nrt.RTParams(max_depth=1,
                           los=False,
-                          reflection=False,
-                          scattering=False,
+                          reflection=True,
+                          scattering=True,
                           diffraction=False,
-                          ris=False,
+                          ris=True,
                           refine_convergence_threshold=1e-5)
 
     scene.tx_array = PlanarArray(num_rows=1,
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     print(c_n)
     print(t*1e9)
 
-    plt.stem(t*1e9, c_n, markerfmt='')
+    plt.stem(t*1e9, np.abs(c), markerfmt='')
     plt.title("Sionna Paths")
     plt.xlabel("Time (ns)")
     plt.ylabel("$\\text{Normalized } |h(t)|^2$")

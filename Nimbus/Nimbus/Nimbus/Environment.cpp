@@ -62,14 +62,14 @@ namespace Nimbus
             instances[0].sbtOffset = 0;
             instances[0].visibilityMask = 255u;
             instances[0].flags = OPTIX_INSTANCE_FLAG_NONE;
-            std::memcpy(instances[0].transform, &identityMatrix, sizeof(glm::mat3x4));
+            *reinterpret_cast<glm::mat3x4*>(instances[0].transform) = identityMatrix;
             instances[0].traversableHandle = m_AccelerationStructure.GetRawHandle();
 
             instances[1].instanceId = 1;
             instances[1].sbtOffset = 1;
             instances[1].visibilityMask = 255u;
             instances[1].flags = OPTIX_INSTANCE_FLAG_DISABLE_TRIANGLE_FACE_CULLING;
-            std::memcpy(instances[1].transform, &identityMatrix, sizeof(glm::mat3x4));
+            *reinterpret_cast<glm::mat3x4*>(instances[1].transform) = identityMatrix;
             instances[1].traversableHandle = m_RisData.gas.GetRawHandle();
 
             m_InstanceBuffer = DeviceBuffer::Create(instances.data(), 2u);

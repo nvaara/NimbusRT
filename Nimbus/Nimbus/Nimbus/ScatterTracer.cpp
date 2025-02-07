@@ -43,7 +43,7 @@ namespace Nimbus
         m_Reflection = params.reflection;
         m_Scattering = params.scattering;
         m_Diffraction = params.diffraction && env.HasEdges();
-        m_Ris = params.ris && risData.objectIds.size() > 0u;
+        m_Ris = params.ris && env.GetRisPointCount() > 0u;
 
         m_TransmitterBuffer = DeviceBuffer(sizeof(glm::vec3) * txCount);
         m_TransmitterBuffer.Upload(txs, txCount);
