@@ -48,6 +48,22 @@ class RTParams(NativeRTParams):
         self._max_num_interactions = value
 
     @property
+    def los(self):
+        return self._los
+
+    @los.setter
+    def los(self, value):
+        self._los = value
+
+    @property
+    def reflection(self):
+        return self._reflection
+
+    @reflection.setter
+    def reflection(self, value):
+        self._reflection = value
+
+    @property
     def scattering(self):
         return self._scattering
 
