@@ -188,6 +188,10 @@ namespace Nimbus
                 const OptixAabb* primitives;
                 const PrimitivePoint* primitivePoints;
                 const IEPrimitiveInfo* primitiveInfos;
+                float pointRadius;
+                float sdfThreshold;
+                float lambdaDistance;
+                float sampleDistance;
             } pc;
             struct
             {
@@ -203,10 +207,11 @@ namespace Nimbus
     struct RayTracingParams
     {
         EnvironmentData env;
-        float sampleDistance;
-        float sampleRadius;
-        float varianceFactor;
-        float sdfThreshold;
+        //float sampleDistance;
+        //float sampleRadius;
+        //float lambdaDistance;
+        //float varianceFactor;
+        //float sdfThreshold;
 
         float rayMaxLength;
         float rayBias;
@@ -224,7 +229,7 @@ namespace Nimbus
         PrimitivePoint* points;
         uint32_t* pointCount;
         uint32_t ieCount;
-        float aabbBias;
+        float pointRadius;
     };
 
     struct STRTData
@@ -318,9 +323,6 @@ namespace Nimbus
         bool scattering;
         bool diffraction;
         bool ris;
-        float sampleRadius;
-        float varianceFactor;
-        float sdfThreshold;
         uint32_t numRefineIterations;
         uint32_t refineMaxCorrectionIterations;
         float refineDelta;

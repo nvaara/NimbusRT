@@ -9,14 +9,14 @@ __constant__ Nimbus::STData data;
 
 inline __device__ void OptimizeAabbSize(OptixAabb& aabb, const glm::vec3& voxelCenter, float halfVoxelSize)
 {
-	aabb.minX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x - halfVoxelSize : aabb.minX) - data.aabbBias;
-	aabb.maxX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x + halfVoxelSize : aabb.maxX) + data.aabbBias;
+	aabb.minX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x - halfVoxelSize : aabb.minX) - data.pointRadius;
+	aabb.maxX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x + halfVoxelSize : aabb.maxX) + data.pointRadius;
 	
-	aabb.minY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y - halfVoxelSize : aabb.minY) - data.aabbBias;
-	aabb.maxY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y + halfVoxelSize : aabb.maxY) + data.aabbBias;
+	aabb.minY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y - halfVoxelSize : aabb.minY) - data.pointRadius;
+	aabb.maxY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y + halfVoxelSize : aabb.maxY) + data.pointRadius;
 	
-	aabb.minZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z - halfVoxelSize : aabb.minZ) - data.aabbBias;
-	aabb.maxZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z + halfVoxelSize : aabb.maxZ) + data.aabbBias;
+	aabb.minZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z - halfVoxelSize : aabb.minZ) - data.pointRadius;
+	aabb.maxZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z + halfVoxelSize : aabb.maxZ) + data.pointRadius;
 }
 
 extern "C" __global__ void CreatePrimitives()

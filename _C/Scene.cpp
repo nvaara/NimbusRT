@@ -5,13 +5,15 @@
 void Scene::SetPointCloud(py::array_t<Nimbus::PointData, py::array::c_style | py::array::forcecast> pointCloud,
 						  std::optional<py::array_t<Nimbus::EdgeData, py::array::c_style | py::array::forcecast>> edges,
 						  float voxelSize,
-						  float aabbBias)
+						  float pointRadius,
+						  float sdfThreshold,
+						  float lambdaDistance)
 {
 	auto env = std::make_unique<Nimbus::PointCloudEnvironment>();
 	const Nimbus::EdgeData* edgePtr = edges ? edges.value().data() : nullptr;
 	size_t numEdges = edges ? edges.value().size() : 0u;
 	
-	if (env->Init(pointCloud.data(), pointCloud.size(), edgePtr, numEdges, voxelSize, aabbBias))
+	if (env->Init(pointCloud.data(), pointCloud.size(), edgePtr, numEdges, voxelSize, pointRadius, sdfThreshold, lambdaDistance))
 	{
 		m_Environment = std::move(env);
 		return;

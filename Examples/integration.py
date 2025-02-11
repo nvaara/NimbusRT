@@ -10,13 +10,13 @@ if __name__ == "__main__":
     for mat_label in range(scene.num_material_labels):
         scene.set_itu_material_for_label(mat_label, "itu_plasterboard", scattering_coefficient=0.2, scattering_pattern=DirectivePattern(100))
     scene.frequency = 60e9
-    params = nrt.RTParams(max_depth=1,
+    params = nrt.RTParams(max_depth=2,
                           los=False,
                           reflection=True,
                           scattering=True,
                           diffraction=False,
-                          ris=True,
-                          refine_convergence_threshold=1e-5)
+                          ris=False,
+                          refine_convergence_threshold=1e-4)
 
     scene.tx_array = PlanarArray(num_rows=1,
                                  num_cols=1,
@@ -36,8 +36,8 @@ if __name__ == "__main__":
           num_rows=num_rows,
           num_cols=num_cols)
 
-    scene.add(ris)
-    ris.phase_gradient_reflector(scene.get("tx").position, scene.get("rx").position)
+    #scene.add(ris)
+    #ris.phase_gradient_reflector(scene.get("tx").position, scene.get("rx").position)
 
     result_paths_tmp = scene.trace_paths(params)
     spec_paths, diff_paths, scat_paths, ris_paths, spec_paths_tmp, diff_paths_tmp, scat_paths_tmp, ris_paths_tmp = result_paths_tmp

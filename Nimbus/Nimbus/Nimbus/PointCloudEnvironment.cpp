@@ -8,8 +8,11 @@
 
 namespace Nimbus
 {
-	PointCloudEnvironment::PointCloudEnvironment()
+    PointCloudEnvironment::PointCloudEnvironment()
         : m_VoxelSize(0.0f)
+        , m_PointRadius(0.0f)
+        , m_SdfThreshold(0.0f)
+        , m_LambdaDistance(0.0f)
         , m_Aabb()
         , m_VoxelWorldInfo()
         , m_IeCount(0u)
@@ -17,9 +20,20 @@ namespace Nimbus
 	{
 	}
 
-	bool PointCloudEnvironment::Init(const PointData* points, size_t numPoints, const EdgeData* edges, size_t numEdges, float voxelSize, float aabbBias)
+	bool PointCloudEnvironment::Init(const PointData* points,
+                                     size_t numPoints,
+                                     const EdgeData* edges,
+                                     size_t numEdges,
+                                     float voxelSize,
+                                     float pointRadius,
+                                     float sdfThreshold,
+                                     float lambdaDistance)
 	{
         m_VoxelSize = voxelSize;
+        m_PointRadius = pointRadius;
+        m_SdfThreshold = sdfThreshold;
+        m_LambdaDistance = lambdaDistance;
+
         if (numPoints <= 1u)
         {
             LOG("Scene does not contain points.");
@@ -35,7 +49,7 @@ namespace Nimbus
     
         std::vector<glm::uvec2> voxelNodeIndices = LinkPointNodes(pointNodes);
 
-        if (!GenerateRayTracingData(pointNodes, voxelNodeIndices, aabbBias))
+        if (!GenerateRayTracingData(pointNodes, voxelNodeIndices))
         {
             LOG("Failed to generate ray tracing data.");
             return false;
@@ -62,6 +76,10 @@ namespace Nimbus
         result.pc.primitiveInfos = m_PrimitiveInfoBuffer.DevicePointerCast<IEPrimitiveInfo>();
         result.pc.primitivePoints = m_PrimitivePointBuffer.DevicePointerCast<PrimitivePoint>();
         result.pc.primitives = m_PrimitiveBuffer.DevicePointerCast<OptixAabb>();
+        result.pc.pointRadius = m_PointRadius;
+        result.pc.sdfThreshold = m_SdfThreshold;
+        result.pc.lambdaDistance = m_LambdaDistance;
+        result.pc.sampleDistance = glm::length(glm::vec3(result.vwInfo.size));
         
         result.ris.objectIds = m_RisData.objectIds.DevicePointerCast<uint32_t>();
         result.ris.normals = m_RisData.normals.DevicePointerCast<glm::vec3>();
@@ -171,7 +189,7 @@ namespace Nimbus
         return voxelNodeIndices;
     }
 
-    bool PointCloudEnvironment::GenerateRayTracingData(const std::vector<PointNode>& pointNodes, const std::vector<glm::uvec2>& voxelNodeIndices, float aabbBias)
+    bool PointCloudEnvironment::GenerateRayTracingData(const std::vector<PointNode>& pointNodes, const std::vector<glm::uvec2>& voxelNodeIndices)
     {
         m_PrimitiveBuffer = DeviceBuffer(m_IeCount * sizeof(OptixAabb));
         m_RtPointBuffer = DeviceBuffer(m_IeCount * sizeof(glm::vec3));
@@ -196,7 +214,7 @@ namespace Nimbus
         data.points = m_PrimitivePointBuffer.DevicePointerCast<PrimitivePoint>();
         data.pointCount = pointCountBuffer.DevicePointerCast<uint32_t>();
         data.ieCount = m_IeCount;
-        data.aabbBias = aabbBias;
+        data.pointRadius = m_PointRadius;
         
         KernelData::Get().GetStConstantBuffer().Upload(&data, 1);
         constexpr uint32_t blockSize = 256u;

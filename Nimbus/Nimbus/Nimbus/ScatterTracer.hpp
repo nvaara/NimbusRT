@@ -18,7 +18,14 @@ namespace Nimbus
 					 uint32_t rxCount,
 					 const RisData& risData);
 
-		bool CreateCoverageMapInfo(Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers, const RisData& risData);
+		bool CreateCoverageMapInfo(Environment& env,
+								   const glm::vec3& tx,
+								   float size,
+								   float height,
+								   CoverageMapInfo& result,
+								   std::vector<glm::vec3>& receivers,
+								   const RisData& risData);
+
 		std::unique_ptr<PathStorage> Trace();
 
 	private:

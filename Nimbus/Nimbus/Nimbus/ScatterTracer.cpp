@@ -24,7 +24,13 @@ namespace Nimbus
 
 	}
 
-    bool ScatterTracer::Prepare(Environment& env, const ScatterTracingParams& params, const glm::vec3* txs, uint32_t txCount, const glm::vec3* rxs, uint32_t rxCount, const RisData& risData)
+    bool ScatterTracer::Prepare(Environment& env,
+                                const ScatterTracingParams& params,
+                                const glm::vec3* txs,
+                                uint32_t txCount,
+                                const glm::vec3* rxs,
+                                uint32_t rxCount,
+                                const RisData& risData)
     {
         m_Environment = &env;
         if (txCount == 0 || rxCount == 0)
@@ -60,11 +66,7 @@ namespace Nimbus
         m_STRTData.receivers = m_ReceiverBuffer.DevicePointerCast<glm::vec3>();
 
         m_STRTData.rtParams.env = env.GetGpuEnvironmentData();
-        m_STRTData.rtParams.sampleDistance = glm::length(glm::vec3(m_STRTData.rtParams.env.vwInfo.size));
-        m_STRTData.rtParams.sampleRadius = params.sampleRadius;
         m_STRTData.rtParams.rayBias = params.rayBias;
-        m_STRTData.rtParams.varianceFactor = params.varianceFactor;
-        m_STRTData.rtParams.sdfThreshold = params.sdfThreshold;
 
         m_STRTData.refineParams.maxNumIterations = params.numRefineIterations;
         m_STRTData.refineParams.maxCorrectionIterations = params.refineMaxCorrectionIterations;
@@ -154,7 +156,7 @@ namespace Nimbus
         KernelData::Get().GetStCoverageConstantBuffer().Upload(&data, 1);
         constexpr uint32_t blockSize = 256u;
         uint32_t gridCount = Utils::GetLaunchCount(data.numPoints, blockSize);
-        KernelData::Get().GetStCoveragePointsKernel().LaunchAndSynchronize(glm::uvec3(gridCount, 1, 1), glm::uvec3(blockSize, 1, 1));
+        KernelData::Get().GetStCoveragePointsKernel().LaunchAndSynchronize(glm::uvec3(gridCount, 1u, 1u), glm::uvec3(blockSize, 1u, 1u));
 
         uint32_t numRx = 0;
         numRxBuffer.Download(&numRx, 1);
@@ -175,16 +177,19 @@ namespace Nimbus
     std::unique_ptr<PathStorage> ScatterTracer::Trace()
     {
         ComputeVisibility();
-        for (uint32_t txID = 0; txID < static_cast<uint32_t>(m_TxCount); ++txID)
+        for (uint32_t txID = 0u; txID < static_cast<uint32_t>(m_TxCount); ++txID)
         {
             Transmit(txID);
-            if (m_MaxNumIa > 0)
-                Refine();
-
-            for (uint32_t i = 1; i < m_MaxNumIa; ++i)
+            if (m_PropagationPathCount > 0u)
             {
-                Propagate();
-                Refine();
+                if (m_MaxNumIa > 0u)
+                    Refine();
+
+                for (uint32_t i = 1u; i < m_MaxNumIa; ++i)
+                {
+                    Propagate();
+                    Refine();
+                }
             }
         }
         return std::move(m_PathStorage);
@@ -193,14 +198,14 @@ namespace Nimbus
     void ScatterTracer::ComputeVisibility()
     {
         m_STRTDataBuffer.Upload(&m_STRTData, 1);
-        m_Environment->ComputeVisibility(m_STRTDataBuffer, glm::uvec3(m_IeCount, static_cast<uint32_t>(m_RxCount), 1));
+        m_Environment->ComputeVisibility(m_STRTDataBuffer, glm::uvec3(m_IeCount, static_cast<uint32_t>(m_RxCount), 1u));
     }
 
     void ScatterTracer::DetermineLOSPaths()
     {
         if (m_Los)
         {
-          m_Environment->DetermineLosPaths(m_STRTDataBuffer, glm::uvec3(static_cast<uint32_t>(m_RxCount), 1, 1));
+          m_Environment->DetermineLosPaths(m_STRTDataBuffer, glm::uvec3(static_cast<uint32_t>(m_RxCount), 1u, 1u));
           RetrieveReceivedPaths();
         }
     }
@@ -208,20 +213,20 @@ namespace Nimbus
     void ScatterTracer::Transmit(uint32_t txID)
     {
         m_STRTData.currentTxID = txID;
-        m_STRTDataBuffer.Upload(&m_STRTData, 1);
+        m_STRTDataBuffer.Upload(&m_STRTData, 1u);
         DetermineLOSPaths();
         if (m_MaxNumIa > 0)
         {
             ComputeDiffractionPaths();
             ComputeRisPaths();
-            m_Environment->Transmit(m_STRTDataBuffer, glm::uvec3(m_IeCount, 1, 1));
-            m_PathCountBuffer.Download(&m_PropagationPathCount, 1);
+            m_Environment->Transmit(m_STRTDataBuffer, glm::uvec3(m_IeCount, 1u, 1u));
+            m_PathCountBuffer.Download(&m_PropagationPathCount, 1u);
         }
     }
 
     void ScatterTracer::Propagate()
     {
-        m_Environment->Propagate(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, 1, 1));
+        m_Environment->Propagate(m_STRTDataBuffer, glm::uvec3(m_PropagationPathCount, 1u, 1u));
     }
 
     void ScatterTracer::Refine()

@@ -101,7 +101,7 @@ inline __device__ void OnClosestHitRIS(const Nimbus::EnvironmentData& env)
 	payload->rtPointIndex = Nimbus::Constants::RisHit;
 }
 
-inline __device__ bool OnIntersect(const Nimbus::RayTracingParams& rtParams)
+inline __device__ void OnIntersect(const Nimbus::RayTracingParams& rtParams)
 {
 	glm::vec3 rayOrigin = GetObjectRayOrigin();
 	glm::vec3 rayDirection = GetObjectRayDirection();
@@ -114,10 +114,6 @@ inline __device__ bool OnIntersect(const Nimbus::RayTracingParams& rtParams)
 	float distance = 0.0f;
 	glm::vec3 normal = glm::vec3(0.0f);
 	uint32_t ppIdx = Nimbus::Constants::InvalidPointIndex;
-	bool implicitIntersect = IntersectWithImplicitSurface(rayOrigin, rayDirection, rtPoint, ieInfo, rtParams, distance, normal, ppIdx);
-	implicitIntersect &= Nimbus::Utils::IsPointInAabb(aabb, rayOrigin + rayDirection * distance, rtParams.sampleRadius);
-	if (implicitIntersect)
+	if (IntersectWithImplicitSurface(rayOrigin, rayDirection, rtPoint, ieInfo, rtParams, distance, normal, ppIdx))
 		optixReportIntersection(distance, 0, __float_as_uint(normal.x), __float_as_uint(normal.y), __float_as_uint(normal.z), ppIdx);
-
-	return implicitIntersect;
 }

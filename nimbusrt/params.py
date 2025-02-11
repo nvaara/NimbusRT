@@ -8,9 +8,6 @@ class RTParams(NativeRTParams):
                  scattering=False,
                  diffraction=False,
                  ris=False,
-                 sample_radius=0.015,
-                 variance_factor=2.0,
-                 sdf_threshold=0.003,
                  refine_max_iterations=50,
                  refine_max_correction_iterations=10,
                  refine_convergence_threshold=1e-4,
@@ -27,9 +24,6 @@ class RTParams(NativeRTParams):
         self._scattering = scattering
         self._diffraction = diffraction
         self._ris = ris
-        self._sample_radius = sample_radius
-        self._variance_factor = variance_factor
-        self._sdf_threshold = sdf_threshold
         self._refine_max_iterations = refine_max_iterations
         self._refine_max_correction_iterations = refine_max_correction_iterations
         self._refine_convergence_threshold = refine_convergence_threshold
@@ -40,12 +34,12 @@ class RTParams(NativeRTParams):
         self._ray_bias = ray_bias
 
     @property
-    def max_num_interactions(self):
-        return self._max_num_interactions
+    def max_depth(self):
+        return self._max_depth
 
-    @max_num_interactions.setter
-    def max_num_interactions(self, value):
-        self._max_num_interactions = value
+    @max_depth.setter
+    def max_depth(self, value):
+        self._max_depth = value
 
     @property
     def los(self):
@@ -86,30 +80,6 @@ class RTParams(NativeRTParams):
     @ris.setter
     def ris(self, value):
         self._ris = value
-
-    @property
-    def sample_radius(self):
-        return self._sample_radius
-
-    @sample_radius.setter
-    def sample_radius(self, value):
-        self._sample_radius = value
-
-    @property
-    def variance_factor(self):
-        return self._variance_factor
-
-    @variance_factor.setter
-    def variance_factor(self, value):
-        self._variance_factor = value
-
-    @property
-    def sdf_threshold(self):
-        return self._sdf_threshold
-
-    @sdf_threshold.setter
-    def sdf_threshold(self, value):
-        self._sdf_threshold = value
 
     @property
     def refine_max_iterations(self):
