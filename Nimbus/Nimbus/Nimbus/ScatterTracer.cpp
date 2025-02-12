@@ -124,8 +124,15 @@ namespace Nimbus
         return true;
     }
 
-    bool ScatterTracer::CreateCoverageMapInfo(Environment& env, const glm::vec3& tx, float size, float height, CoverageMapInfo& result, std::vector<glm::vec3>& receivers, const RisData& risData)
+    bool ScatterTracer::CreateCoverageMapInfo(Environment& env,
+                                              float size,
+                                              float height,
+                                              CoverageMapInfo& result,
+                                              std::vector<glm::vec3>& receivers,
+                                              const RisData& risData)
     {
+        env.InitRisGasData(risData);
+
         glm::uvec3 voxelDimensions = glm::uvec3(glm::ceil((env.GetAabb().max - env.GetAabb().min) / size));
         if (size <= 0.0f)
         {
@@ -157,7 +164,6 @@ namespace Nimbus
         constexpr uint32_t blockSize = 256u;
         uint32_t gridCount = Utils::GetLaunchCount(data.numPoints, blockSize);
         KernelData::Get().GetStCoveragePointsKernel().LaunchAndSynchronize(glm::uvec3(gridCount, 1u, 1u), glm::uvec3(blockSize, 1u, 1u));
-
         uint32_t numRx = 0;
         numRxBuffer.Download(&numRx, 1);
         if (numRx == 0)
@@ -170,7 +176,9 @@ namespace Nimbus
         std::vector<glm::uvec2> rxCoords2D(numRx);
         rxBuffer.Download(receivers.data(), receivers.size());
         rx2DBuffer.Download(rxCoords2D.data(), rxCoords2D.size());
-        result = CoverageMapInfo(glm::uvec2(voxelDimensions.x, voxelDimensions.y), std::move(rxCoords2D), size, height);
+        glm::vec3 sceneSize = glm::vec3(voxelDimensions) * size;
+        glm::vec3 center = env.GetAabb().min + (sceneSize * 0.5f);
+        result = CoverageMapInfo(glm::uvec2(voxelDimensions.y, voxelDimensions.x), std::move(rxCoords2D), center, glm::vec2(sceneSize.x, sceneSize.y), size, height);
         return true;
     }
 

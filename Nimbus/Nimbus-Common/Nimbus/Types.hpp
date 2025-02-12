@@ -305,13 +305,32 @@ namespace Nimbus
 
     struct CoverageMapInfo
     {
-        CoverageMapInfo() : dimensions(0u), size(0.0f), height(0.0f) {}
-        CoverageMapInfo(const glm::uvec2& dimensions, std::vector<glm::uvec2>&& rxCoords2D, float size, float height)
-            : dimensions(dimensions), rxCoords2D(std::move(rxCoords2D)), size(size), height(height) {}
+        CoverageMapInfo()
+            : dimensions(0u)
+            , center(0.0f)
+            , sceneSize(0.0f)
+            , cellSize(0.0f)
+            , height(0.0f)
+        {}
+
+        CoverageMapInfo(const glm::uvec2& dimensions,
+                        std::vector<glm::uvec2>&& rxCoords2D,
+                        const glm::vec3& center,
+                        const glm::vec2& sceneSize,
+                        float cellSize,
+                        float height)
+            : dimensions(dimensions)
+            , rxCoords2D(std::move(rxCoords2D))
+            , center(center)
+            , sceneSize(sceneSize)
+            , cellSize(cellSize)
+            , height(height) {}
         
         glm::uvec2 dimensions;
         std::vector<glm::uvec2> rxCoords2D;
-        float size;
+        glm::vec3 center;
+        glm::vec2 sceneSize;
+        glm::vec2 cellSize;
         float height;
     };
 

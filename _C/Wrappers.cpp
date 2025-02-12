@@ -382,6 +382,45 @@ int32_t SionnaPathWrapper::GetMaxLinkPaths(uint32_t sionnaPathType) const
 	return static_cast<int32_t>(m_SionnaData.maxLinkPaths[sionnaPathType]);
 }
 
+SionnaCoverageWrapper::SionnaCoverageWrapper(const Nimbus::Environment& env, std::unique_ptr<Nimbus::PathStorage>&& path, Nimbus::CoverageMapInfo&& mapInfo)
+	: SionnaPathWrapper(env, std::move(path))
+	, m_CoverageMapInfo(std::move(mapInfo))
+{
+}
+
+py::array_t<uint32_t, py::array::c_style> SionnaCoverageWrapper::GetRx2D() const
+{
+	std::array<size_t, 2> shape = { m_CoverageMapInfo.rxCoords2D.size(), glm::uvec2::length() };
+	std::array<size_t, 2> stride = { shape[1] * sizeof(uint32_t), sizeof(uint32_t), };
+	return py::array_t<uint32_t, py::array::c_style>(shape, stride, reinterpret_cast<const uint32_t*>(m_CoverageMapInfo.rxCoords2D.data()), py::none());
+}
+
+py::array_t<uint32_t, py::array::c_style> SionnaCoverageWrapper::GetDimensions() const
+{
+	return py::array_t<uint32_t, py::array::c_style>({ glm::uvec2::length() }, { sizeof(glm::uvec2::value_type) }, &m_CoverageMapInfo.dimensions.x, py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaCoverageWrapper::GetCenter() const
+{
+	std::array<size_t, 1> shape = { glm::vec3::length() };
+	std::array<size_t, 1> stride = { sizeof(float) };
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(&m_CoverageMapInfo.center), py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaCoverageWrapper::GetSceneSize() const
+{
+	std::array<size_t, 1> shape = { glm::vec2::length() };
+	std::array<size_t, 1> stride = { sizeof(float) };
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(&m_CoverageMapInfo.sceneSize), py::none());
+}
+
+py::array_t<float, py::array::c_style> SionnaCoverageWrapper::GetCellSize() const
+{
+	std::array<size_t, 1> shape = { glm::vec2::length() };
+	std::array<size_t, 1> stride = { sizeof(float) };
+	return py::array_t<float, py::array::c_style>(shape, stride, reinterpret_cast<const float*>(&m_CoverageMapInfo.cellSize), py::none());
+}
+
 Nimbus::RisData RisWrapper::ToData() const
 {
 	Nimbus::RisData result{};

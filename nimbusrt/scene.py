@@ -67,7 +67,7 @@ class Scene():
         
     @property
     def cameras(self):
-        return dict(self._sionna_scene.cameras)
+        return self._sionna_scene.cameras
     
     @property
     def frequency(self):
@@ -79,23 +79,23 @@ class Scene():
 
     @property
     def temperature(self):
-        raise NotImplementedError()
+        return self._sionna_scene.temperature
 
     @temperature.setter
-    def temperature(self, v):
-        raise NotImplementedError()
+    def temperature(self, temperature):
+        self._sionna_scene.temperature = temperature
 
     @property
     def bandwidth(self):
-        raise NotImplementedError()
+        return self._sionna_scene.bandwidth
 
     @bandwidth.setter
-    def bandwidth(self, v):
-        raise NotImplementedError()
+    def bandwidth(self, bandwidth):
+        self._sionna_scene.bandwidth = bandwidth
 
     @property
     def thermal_noise_power(self):
-        raise NotImplementedError()
+        return self._sionna_scene.thermal_noise_power
 
     @property
     def transmitters(self):
@@ -175,11 +175,11 @@ class Scene():
 
     @property
     def size(self):
-        raise NotImplementedError()
+        return tf.convert_to_tensor(self._native_scene._size, dtype=self.dtype.real_dtype)
         
     @property
     def center(self):
-        raise NotImplementedError()
+        return tf.convert_to_tensor(self._native_scene._center, dtype=self.dtype.real_dtype)
 
     @property
     def num_material_labels(self):
@@ -205,6 +205,57 @@ class Scene():
                                                               rxs,
                                                               ris_data)
         return self._convert_to_sionna(result)
+
+    def coverage_map(self, params: RTParams, cell_size, height, rx_polarization="V"):
+        txs = np.asarray([tx.position for tx in self.transmitters.values()], dtype=np.float32)
+        ris_data = self._build_ris_data()
+
+        synthetic_array_cache = self.synthetic_array
+        tx_array_cache = self.tx_array
+        rx_array_cache = self.rx_array
+        
+        self.tx_array = srt.PlanarArray(num_rows=1,
+                                        num_cols=1,
+                                        vertical_spacing=0.5,
+                                        horizontal_spacing=0.5,
+                                        pattern=tx_array_cache.antenna.patterns)
+
+        self.rx_array = srt.PlanarArray(num_rows=1,
+                                        num_cols=1,
+                                        vertical_spacing=0.5,
+                                        horizontal_spacing=0.5,
+                                        pattern="iso",
+                                        polarization=rx_polarization)
+        self.synthetic_array = True
+        cm_data = self._native_scene._sionna_coverage_map(params, txs, cell_size, height, ris_data)
+        path_tuple = self._convert_to_sionna(cm_data)
+        
+        a, _ = self.compute_fields(path_tuple).cir()
+        path_gains = tf.transpose(tf.squeeze(tf.reduce_sum(tf.abs(a)**2, axis=-2), axis=[0,2,4,5]))
+        
+        indices = tf.convert_to_tensor(cm_data.rx_coords_2d, dtype=tf.int32)
+        indices_expanded = tf.tile(indices[None, :, :], [txs.shape[0], 1, 1])
+
+        path_gain_map = tf.zeros((txs.shape[0], cm_data.shape[0], cm_data.shape[1]))
+
+        tx_indices = tf.range(txs.shape[0])[:, None]
+        tx_indices = tf.tile(tx_indices, [1, indices.shape[0]])
+        scatter_indices = tf.stack([tx_indices, indices_expanded[:, :, 0], indices_expanded[:, :, 1]], axis=-1)
+        path_gain_map = tf.tensor_scatter_nd_update(path_gain_map, scatter_indices, path_gains)
+
+        result = srt.CoverageMap(center=cm_data.center,
+                                 orientation=[0,0,0],
+                                 size=cm_data.size,
+                                 cell_size=cm_data.cell_size,
+                                 path_gain=path_gain_map,
+                                 scene=self._sionna_scene,
+                                 dtype=self.dtype)
+
+        self.synthetic_array = synthetic_array_cache
+        self.tx_array = tx_array_cache
+        self.rx_array = rx_array_cache
+
+        return result
 
     def compute_fields(self, path_tuple):
         return self._sionna_scene.compute_fields(*path_tuple)

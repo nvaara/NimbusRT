@@ -2,6 +2,7 @@
 #include "Wrappers.hpp"
 #include "Nimbus/PointCloudEnvironment.hpp"
 #include "Nimbus/TriangleMeshEnvironment.hpp"
+#include <array>
 
 class Scene
 {
@@ -35,7 +36,16 @@ public:
 	std::unique_ptr<SionnaPathWrapper> ComputeSionnaPathData(const Nimbus::ScatterTracingParams& params,
 															 const py::array_t<float, py::array::c_style | py::array::forcecast>& txs,
 															 const py::array_t<float, py::array::c_style | py::array::forcecast>& rxs,
-															 const RisWrapper& risData);
+															 const RisWrapper& risWrapper);
+
+	std::unique_ptr<SionnaCoverageWrapper> ComputeSionnaCoverageMap(const Nimbus::ScatterTracingParams& params,
+																    const py::array_t<float, py::array::c_style | py::array::forcecast>& txs,
+																    float size,
+																    float height,
+																    const RisWrapper& risWrapper);
+	
+	std::array<float, 3> GetSize() const;
+	std::array<float, 3> GetCenter() const;
 
 private:
 	std::unique_ptr<Nimbus::Environment> m_Environment;

@@ -26,7 +26,8 @@ namespace Nimbus
 		bool HasEdges() const { return GetEdges().size() > 0u; }
 		uint32_t GetEdgeCount() const { return static_cast<uint32_t>(GetEdges().size()); }
 		uint32_t GetRisPointCount() const { return m_RisData.cellCount; };
-
+		glm::vec3 GetCenter() const;
+		glm::vec3 GetSceneSize() const;
 		bool InitRisGasData(const RisData& risData);
 
 		virtual void ComputeVisibility(const DeviceBuffer& params, const glm::uvec3& dims) const = 0;

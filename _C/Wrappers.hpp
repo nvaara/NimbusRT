@@ -82,6 +82,21 @@ private:
 	Nimbus::PathStorage::SionnaPathData m_SionnaData;
 };
 
+class SionnaCoverageWrapper : public SionnaPathWrapper
+{
+public:
+	SionnaCoverageWrapper(const Nimbus::Environment& env, std::unique_ptr<Nimbus::PathStorage>&& path, Nimbus::CoverageMapInfo&& mapInfo);
+
+	py::array_t<uint32_t, py::array::c_style> GetRx2D() const;
+	py::array_t<uint32_t, py::array::c_style> GetDimensions() const;
+	py::array_t<float, py::array::c_style>  GetCenter() const;
+	py::array_t<float, py::array::c_style>  GetSceneSize() const;
+	py::array_t<float, py::array::c_style> GetCellSize() const;
+
+private:
+	Nimbus::CoverageMapInfo m_CoverageMapInfo;
+};
+
 struct RisWrapper
 {
 	RisWrapper() = default;

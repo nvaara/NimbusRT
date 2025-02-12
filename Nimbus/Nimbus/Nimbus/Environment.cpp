@@ -5,6 +5,18 @@
 
 namespace Nimbus
 {
+    glm::vec3 Environment::GetCenter() const
+    {
+        const Aabb& aabb = GetAabb();
+        return (aabb.min + aabb.max) * 0.5f;
+    }
+
+    glm::vec3 Environment::GetSceneSize() const
+    {
+        const Aabb& aabb = GetAabb();
+        return aabb.max - aabb.min;
+    }
+
     bool Environment::InitRisGasData(const RisData& risData)
     {
         m_RisData = {};

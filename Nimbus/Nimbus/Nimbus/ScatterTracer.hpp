@@ -19,7 +19,6 @@ namespace Nimbus
 					 const RisData& risData);
 
 		bool CreateCoverageMapInfo(Environment& env,
-								   const glm::vec3& tx,
 								   float size,
 								   float height,
 								   CoverageMapInfo& result,

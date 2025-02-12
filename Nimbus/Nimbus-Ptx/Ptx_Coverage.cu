@@ -24,6 +24,6 @@ extern "C" __global__ void CoveragePoints()
 		uint32_t index = atomicAdd(data.outNumRx, 1u);
 		glm::vec3 rxPos = Nimbus::Utils::VoxelToWorld(glm::vec3(cmVx.x, cmVx.y, 0u), data.coverageWorldInfo);
 		data.outReceivers[index] = glm::vec3(rxPos.x, rxPos.y, data.height);
-		data.outRx2D[index] = glm::uvec2(cmVx.x, cmVx.y);
+		data.outRx2D[index] = glm::uvec2(cmVx.y, cmVx.x);
 	}
 }

@@ -91,6 +91,51 @@ std::unique_ptr<SionnaPathWrapper> Scene::ComputeSionnaPathData(const Nimbus::Sc
 		PROFILE_SCOPE();
 		return std::make_unique<SionnaPathWrapper>(*m_Environment, st.Trace());
 	}
-	throw std::runtime_error("Failed to compute path data.");
+	throw std::runtime_error("Failed to compute sionna path data.");
 	return {};
+}
+
+std::unique_ptr<SionnaCoverageWrapper> Scene::ComputeSionnaCoverageMap(const Nimbus::ScatterTracingParams& params,
+																	   const py::array_t<float, py::array::c_style | py::array::forcecast>& txs,
+																	   float size,
+																	   float height,
+																	   const RisWrapper& risWrapper)
+{
+	Nimbus::ScatterTracer st = Nimbus::ScatterTracer();
+	Nimbus::CoverageMapInfo mapInfo{};
+	std::vector<glm::vec3> receivers;
+	Nimbus::RisData risData = risWrapper.ToData();
+	const glm::vec3* txPtr = reinterpret_cast<const glm::vec3*>(txs.data());
+	if (m_Environment && st.CreateCoverageMapInfo(*m_Environment, size, height, mapInfo, receivers, risData))
+	{
+		if (st.Prepare(*m_Environment, params, txPtr, static_cast<uint32_t>(txs.shape(0)), receivers.data(), static_cast<uint32_t>(receivers.size()), risData))
+		{
+			PROFILE_SCOPE();
+			return std::make_unique<SionnaCoverageWrapper>(*m_Environment, st.Trace(), std::move(mapInfo));
+		}
+	}
+	throw std::runtime_error("Failed to compute sionna coverage map.");
+	return {};
+}
+
+std::array<float, 3> Scene::GetSize() const
+{
+	std::array<float, 3> result{};
+	if (m_Environment)
+	{
+		glm::vec3 sceneSize = m_Environment->GetSceneSize();
+		result = { sceneSize.x, sceneSize.y, sceneSize.z };
+	}
+	return result;
+}
+
+std::array<float, 3> Scene::GetCenter() const
+{
+	std::array<float, 3> result{};
+	if (m_Environment)
+	{
+		glm::vec3 sceneSize = m_Environment->GetCenter();
+		result = { sceneSize.x, sceneSize.y, sceneSize.z };
+	}
+	return result;
 }
