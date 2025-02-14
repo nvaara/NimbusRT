@@ -19,9 +19,11 @@ namespace Nimbus
 
 	PathHashKey PathStorage::GetPathHash(const PathInfo& pathInfo, const uint32_t* labels) const
 	{
-		size_t hash = CalculateHash(pathInfo.txID, pathInfo.rxID, pathInfo.pathType);
+		uint64_t hashableTx = (static_cast<uint64_t>(pathInfo.pathType) << 32u) | pathInfo.txID;
+		uint64_t hashableRx = (static_cast<uint64_t>(pathInfo.numInteractions + 1u) << 32u) | pathInfo.rxID;
+		size_t hash = CalculateHash(hashableTx, hashableRx);
 		for (uint32_t i = 0; i < pathInfo.numInteractions; ++i)
-			CombineHash(hash, labels[i]);
+			CombineHash(hash, (static_cast<uint64_t>(i + 1u) << 32u) | labels[i]);
 		return PathHashKey(hash);
 	}
 
