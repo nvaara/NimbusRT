@@ -25,7 +25,6 @@ class Scene():
         self._sionna_scene._clear()
         self._itu_materials = itu.get_materials(dtype)
         self._num_material_labels = 0
-        self._sionna_scene.radio_material_callable = self
 
     def set_model(self, ply, params):
         ply_data = self._get_ply_data(ply)
@@ -141,6 +140,22 @@ class Scene():
     def radio_materials(self):
         return self._sionna_scene.radio_materials
 
+    @property
+    def radio_material_callable(self):
+        return self._sionna_scene.radio_material_callable
+
+    @radio_material_callable.setter
+    def radio_material_callable(self, rm_callable):
+        self._sionna_scene.radio_material_callable = rm_callable
+
+    @property
+    def scattering_pattern_callable(self):
+        return self._sionna_scene.scattering_pattern_callable
+
+    @scattering_pattern_callable.setter
+    def scattering_pattern_callable(self, sp_callable):
+        self._sionna_scene.scattering_pattern_callable = sp_callable
+
     def set_itu_material_for_label(self, label_index, itu_name, scattering_coefficient=0.0, xpd_coefficient=0.0, scattering_pattern=None):
         itu_mat = self._itu_materials[itu_name]
         label_mat = self._sionna_scene.radio_materials[str(label_index)]
@@ -152,6 +167,10 @@ class Scene():
 
     def get_label_material(self, label_index):
         return self._sionna_scene.radio_materials[str(label_index)]
+
+    def set_label_material(self, label_index, material):
+        material.name = str(label_index)
+        self._sionna_scene.radio_materials[material.name] = material
 
     @property
     def objects(self):
@@ -292,10 +311,12 @@ class Scene():
 
         for i in range(self._num_material_labels):
             str_i = str(i)
-            self._sionna_scene.add(srt.RadioMaterial(str_i))
-            self._sionna_scene._scene_objects[str(i)] = srt.SceneObject(str_i) #Workaround for object velocity.
-            self._sionna_scene._scene_objects[str(i)].object_id = i
-            self._sionna_scene._scene_objects[str(i)]._radio_material = self._sionna_scene.get(str_i)
+            str_obj = str_i + "_obj"
+            radio_material = srt.RadioMaterial(str_i)
+            self._sionna_scene._scene_objects[str_obj] = srt.SceneObject(str_obj) #Workaround for object velocity.
+            self._sionna_scene._scene_objects[str_obj].object_id = i
+            self._sionna_scene._scene_objects[str_obj].scene = self._sionna_scene
+            self._sionna_scene._scene_objects[str_obj].radio_material = radio_material
         
         #For RIS
         self._sionna_scene.add(self._itu_materials["itu_metal"])

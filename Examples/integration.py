@@ -15,7 +15,7 @@ if __name__ == "__main__":
     params = nrt.RTParams(max_depth=3,
                           los=True,
                           reflection=True,
-                          scattering=True,
+                          scattering=False,
                           diffraction=False,
                           ris=False,
                           refine_convergence_threshold=1e-4)

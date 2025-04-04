@@ -58,7 +58,7 @@ scene.objects["_unnamed_1"].scattering_pattern = scattering_pattern
 #spec_paths, diff_paths, scat_paths, ris_paths, spec_paths_tmp, diff_paths_tmp, scat_paths_tmp, ris_paths_tmp = scene.trace_paths(max_depth=1, num_samples=1e6, reflection=False, scattering=False, diffraction=False, ris=False)
 #final_paths = scene.compute_fields(spec_paths, diff_paths, scat_paths, ris_paths, spec_paths_tmp, diff_paths_tmp, scat_paths_tmp, ris_paths_tmp)
 
-a = scene.coverage_map(max_depth=3, cm_cell_size=(0.5, 0.5))
+a = scene.coverage_map(max_depth=3, scattering=True, cm_cell_size=(0.5, 0.5))
 #print(a)
 a.show()
 plt.show()
