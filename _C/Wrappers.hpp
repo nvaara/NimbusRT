@@ -27,7 +27,7 @@ public:
 	py::array_t<uint8_t, py::array::c_style> GetNumInteractions() const;
 
 private:
-	Nimbus::PathStorage::PathData m_Data;
+	Nimbus::PathData m_Data;
 };
 
 class CoverageWrapper : public PathWrapper
@@ -79,7 +79,7 @@ public:
 	int32_t GetMaxLinkPaths(uint32_t sionnaPathType) const;
 
 private:
-	Nimbus::PathStorage::SionnaPathData m_SionnaData;
+	Nimbus::SionnaPathData m_SionnaData;
 };
 
 class SionnaCoverageWrapper : public SionnaPathWrapper

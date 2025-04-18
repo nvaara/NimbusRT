@@ -6,10 +6,13 @@ set(CXX_SOURCES
                 Nimbus/DeviceBuffer.hpp
                 Nimbus/Environment.cpp
                 Nimbus/Environment.hpp
+                Nimbus/Hash.cpp
                 Nimbus/Hash.hpp
                 Nimbus/KernelData.cpp
                 Nimbus/KernelData.hpp
                 Nimbus/Logger.hpp
+                Nimbus/PathData.cpp
+                Nimbus/PathData.hpp
                 Nimbus/PathStorage.cpp
                 Nimbus/PathStorage.hpp
                 Nimbus/PointCloudEnvironment.cpp

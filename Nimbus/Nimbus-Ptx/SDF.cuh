@@ -12,15 +12,13 @@ inline __device__ bool Sign(float value)
 }
 
 inline __device__ float EvaluateGaussian(const Nimbus::PrimitivePoint& pp,
+										 float strength,
 									     const glm::vec3& diffxi,
-										 const glm::vec2& local,
-									     const glm::vec2& scale,
 									     float lambdaZ)
 {
-	glm::vec2 g = local / scale;
-	float gauss1 = -0.5f * (g.x * g.x + g.y * g.y);
-	float gauss2 = lambdaZ * glm::dot(diffxi, diffxi);
-	return exp(gauss1 - gauss2);
+	float gauss = -0.5f * strength;
+	float dist = lambdaZ * glm::dot(diffxi, diffxi);
+	return exp(gauss - dist);
 }
 
 inline __device__ glm::vec3 RayPlaneIntersect(const glm::vec3 origin, const glm::vec3& direction, const glm::vec3& planePoint, const glm::vec3& planeNormal, bool& found)
@@ -56,11 +54,13 @@ inline __device__ float ComputeSdf(const glm::vec3& rayOrigin,
 		glm::vec3 right{}, up{};
 		Nimbus::Utils::GetOrientationVectors(primitive.normal, right, up);
 		glm::vec2 local = glm::vec2(glm::dot(right, diffiu), glm::dot(up, diffiu));
-		
-		if (!intersect || (abs(local.x) > scale.x || abs(local.y) > scale.y))
+		glm::vec2 circle = local / scale;
+		float gaussStrength = glm::dot(circle, circle);
+
+		if (!intersect || gaussStrength > 1.0f)
 			continue;
 		
-		float gaussian = EvaluateGaussian(primitive, diffxi, local, scale, lambdaDistance);
+		float gaussian = EvaluateGaussian(primitive, gaussStrength, diffxi, lambdaDistance);
 	
 		denominator += gaussian;
 		p += gaussian * i;

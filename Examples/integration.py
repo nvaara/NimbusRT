@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
     
 if __name__ == "__main__":
     scene = nrt.Scene()
-    scene.set_triangle_mesh("Data/CorridorSyntheticSimple_TR.ply")
-    #scene.set_point_cloud("Data/TestModelPCD.ply")
+    #scene.set_triangle_mesh("Data/CorridorSyntheticSimple_TR.ply")
+    scene.set_point_cloud("Data/TestModelPCD.ply")
     for mat_label in range(scene.num_material_labels):
         scene.set_itu_material_for_label(mat_label, "itu_plasterboard", scattering_coefficient=0.2, scattering_pattern=DirectivePattern(100))
 
     scene.frequency = 60e9
-    params = nrt.RTParams(max_depth=3,
+    params = nrt.RTParams(max_depth=5,
                           los=True,
                           reflection=True,
                           scattering=False,
@@ -28,10 +28,10 @@ if __name__ == "__main__":
                                  polarization="V")
     scene.rx_array = scene.tx_array
     scene.synthetic_array = True
-    #scene.add(Transmitter(name="tx", position=[2.93, 5.79, 1.82]))
-    #scene.add(Receiver(name="rx", position=[-1.15, 8.7, 0.95]))
-    scene.add(Transmitter(name="tx", position=[5.79, -2.93, 1.82]))
-    scene.add(Receiver(name="rx", position=[8.7, 1.15, 0.95]))
+    scene.add(Transmitter(name="tx", position=[2.93, 5.79, 1.82]))
+    scene.add(Receiver(name="rx", position=[-1.15, 8.7, 0.95]))
+    #scene.add(Transmitter(name="tx", position=[5.79, -2.93, 1.82]))
+    #scene.add(Receiver(name="rx", position=[8.7, 1.15, 0.95]))
 
     width = 1
     num_rows = num_cols = int(width/(0.5*scene.wavelength))
@@ -43,19 +43,19 @@ if __name__ == "__main__":
     #scene.add(ris)
     #ris.phase_gradient_reflector(scene.get("tx").position, scene.get("rx").position)
 
-    c = scene.coverage_map(params, 0.5, 0.1)
-    c.show()
-    plt.show()
-    #result_paths_tmp = scene.trace_paths(params)
-    #spec_paths, diff_paths, scat_paths, ris_paths, spec_paths_tmp, diff_paths_tmp, scat_paths_tmp, ris_paths_tmp = result_paths_tmp
-    #result_paths = scene.compute_fields(result_paths_tmp)
+    #c = scene.coverage_map(params, 0.5, 0.1)
+    #c.show()
+    #plt.show()
+    result_paths_tmp = scene.trace_paths(params)
+    spec_paths, diff_paths, scat_paths, ris_paths, spec_paths_tmp, diff_paths_tmp, scat_paths_tmp, ris_paths_tmp = result_paths_tmp
+    result_paths = scene.compute_fields(result_paths_tmp)
 #
-    #result_paths.normalize_delays = False
-    #a, tau = result_paths.cir()
-    #print(a)
-    #print(tau)
-    #c = a.numpy().flatten()
-    #t = tau.numpy().flatten()
+    result_paths.normalize_delays = False
+    a, tau = result_paths.cir()
+    print(a)
+    print(tau)
+    c = a.numpy().flatten()
+    t = tau.numpy().flatten()
 #
     #c_max = np.max(np.abs(c))
     #c_n = np.abs(c) / c_max

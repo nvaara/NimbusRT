@@ -276,8 +276,11 @@ class Scene():
 
         return result
 
-    def compute_fields(self, path_tuple):
-        return self._sionna_scene.compute_fields(*path_tuple)
+    def compute_fields(self, path_tuple, check_scene=True, scat_random_phases=True, testing=False):
+        return self._sionna_scene.compute_fields(*path_tuple,
+                                                 check_scene=check_scene,
+                                                 scat_random_phases=scat_random_phases,
+                                                 testing=testing)
         
 
     def __call__(self, objects, vertices):

@@ -1,5 +1,6 @@
 #include "PathStorage.hpp"
 #include <iostream>
+
 namespace Nimbus
 {
 	PathStorage::PathStorage(uint32_t maxNumInteractions, const glm::vec3* txs, uint32_t txCount, const glm::vec3* rxs, uint32_t rxCount)
@@ -17,16 +18,6 @@ namespace Nimbus
 			counts = {};
 	}
 
-	PathHashKey PathStorage::GetPathHash(const PathInfo& pathInfo, const uint32_t* labels) const
-	{
-		uint64_t hashableTx = (static_cast<uint64_t>(pathInfo.pathType) << 32u) | pathInfo.txID;
-		uint64_t hashableRx = (static_cast<uint64_t>(pathInfo.numInteractions + 1u) << 32u) | pathInfo.rxID;
-		size_t hash = CalculateHash(hashableTx, hashableRx);
-		for (uint32_t i = 0; i < pathInfo.numInteractions; ++i)
-			CombineHash(hash, (static_cast<uint64_t>(i + 1u) << 32u) | labels[i]);
-		return PathHashKey(hash);
-	}
-
 	void PathStorage::AddPaths(uint32_t numPaths,
 							   const std::vector<PathInfo>& pathInfos,
 							   const std::vector<glm::vec3>& interactions,
@@ -38,7 +29,7 @@ namespace Nimbus
 		{
 			const PathInfo& pathInfo = pathInfos[pathIndex];
 			size_t dataIndex = pathIndex * m_InteractionData.size();
-			PathHashKey hash = GetPathHash(pathInfo, &labels[dataIndex]);
+			PathHash hash = PathHash(pathInfo, &labels[dataIndex]);
 
 			auto [it, emplaced] = m_PathMap.try_emplace(hash, pathInfo.timeDelay, static_cast<uint32_t>(m_PathMap.size()));
 			if (emplaced)
@@ -84,7 +75,7 @@ namespace Nimbus
 		}
 	}
 
-	PathStorage::PathData PathStorage::ToPathData()
+	PathData PathStorage::ToPathData()
 	{
 		PathData data{};
 		data.maxNumIa = m_MaxNumInteractions[static_cast<uint32_t>(SionnaPathType::Specular)];
@@ -115,7 +106,7 @@ namespace Nimbus
 		return data;
 	}
 
-	PathStorage::SionnaPathData PathStorage::ToSionnaPathData(const Environment& env)
+	SionnaPathData PathStorage::ToSionnaPathData(const Environment& env)
 	{
 		SionnaPathData sionnaData{};
 		float voxelSize = env.GetVoxelSize();
@@ -214,22 +205,22 @@ namespace Nimbus
 		return sionnaData;
 	}
 
-	PathStorage::SionnaPathType PathStorage::GetSionnaPathType(PathType type)
+	SionnaPathType PathStorage::GetSionnaPathType(PathType type)
 	{
 		switch (type)
 		{
 		case PathType::LineOfSight:
 		case PathType::Specular:
-			return PathStorage::SionnaPathType::Specular;
+			return SionnaPathType::Specular;
 		case PathType::Diffraction:
-			return PathStorage::SionnaPathType::Diffracted;
+			return SionnaPathType::Diffracted;
 		case PathType::Scattering:
-			return PathStorage::SionnaPathType::Scattered;
+			return SionnaPathType::Scattered;
 		case PathType::RIS:
-			return PathStorage::SionnaPathType::RIS;
+			return SionnaPathType::RIS;
 		default:
 			assert(false);
-			return PathStorage::SionnaPathType::Specular;
+			return SionnaPathType::Specular;
 		}
 	}
 }
