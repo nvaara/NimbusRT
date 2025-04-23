@@ -2,7 +2,6 @@
 #include <Nimbus/Types.hpp>
 #include <Nimbus/Constants.hpp>
 #include <array>
-#include <xhash>
 
 namespace Nimbus::Utils
 {
