@@ -178,6 +178,7 @@ namespace Nimbus
         rx2DBuffer.Download(rxCoords2D.data(), rxCoords2D.size());
         glm::vec3 sceneSize = glm::vec3(voxelDimensions) * size;
         glm::vec3 center = env.GetAabb().min + (sceneSize * 0.5f);
+        center.z = height;
         result = CoverageMapInfo(glm::uvec2(voxelDimensions.y, voxelDimensions.x), std::move(rxCoords2D), center, glm::vec2(sceneSize.x, sceneSize.y), size, height);
         return true;
     }

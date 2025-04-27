@@ -7,7 +7,8 @@ import numpy as np
 from .params import RTParams
 from ._C import NativeScene, NativeRisData
 from . import itu
-
+import copy
+from .coverage_map_3d import CoverageMap3D
 
 class Scene():
     _instance = None
@@ -229,9 +230,9 @@ class Scene():
         txs = np.asarray([tx.position for tx in self.transmitters.values()], dtype=np.float32)
         ris_data = self._build_ris_data()
 
-        synthetic_array_cache = self.synthetic_array
-        tx_array_cache = self.tx_array
-        rx_array_cache = self.rx_array
+        synthetic_array_cache = copy.deepcopy(self.synthetic_array)
+        tx_array_cache = copy.deepcopy(self.tx_array)
+        rx_array_cache = copy.deepcopy(self.rx_array)
         
         self.tx_array = srt.PlanarArray(num_rows=1,
                                         num_cols=1,
@@ -275,6 +276,22 @@ class Scene():
         self.rx_array = rx_array_cache
 
         return result
+
+    def coverage_map_3d(self, params: RTParams, voxel_size, rx_polarization="V"):
+        scene_min = self.center - self.size * 0.5
+        scene_max = self.center + self.size * 0.5
+        first_slice_height = scene_min[2] + voxel_size * 0.5 
+        path_gains = []
+        cell_centers = []
+        for i in range(int(np.ceil((scene_max - scene_min) / voxel_size)[2])):
+            height = first_slice_height + voxel_size * i
+            cm = self.coverage_map(params, voxel_size, height, rx_polarization)
+            cell_centers.append(cm.cell_centers)
+            path_gains.append(cm.path_gain)
+
+        return CoverageMap3D(path_gain=tf.stack(path_gains, axis=1),
+                             cell_centers=tf.stack(cell_centers, axis=0))
+
 
     def compute_fields(self, path_tuple, check_scene=True, scat_random_phases=True, testing=False):
         return self._sionna_scene.compute_fields(*path_tuple,
