@@ -43,8 +43,9 @@ if __name__ == "__main__":
     #scene.add(ris)
     #ris.phase_gradient_reflector(scene.get("tx").position, scene.get("rx").position)
 
-    cm3d = scene.coverage_map_3d(params, 0.5)
-    cm3d.show()
+    cm3d = scene.coverage_map_3d(params, cm_voxel_size=0.5)
+    fig = cm3d.show()
+    fig.axes[0].yaxis.labelpad = 20
     plt.show()
     #c.show()
     #plt.show()

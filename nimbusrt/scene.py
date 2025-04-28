@@ -277,19 +277,23 @@ class Scene():
 
         return result
 
-    def coverage_map_3d(self, params: RTParams, voxel_size, rx_polarization="V"):
+    def coverage_map_3d(self, params: RTParams, cm_voxel_size, rx_polarization="V"):
         scene_min = self.center - self.size * 0.5
         scene_max = self.center + self.size * 0.5
-        first_slice_height = scene_min[2] + voxel_size * 0.5 
+        first_slice_height = scene_min[2] + cm_voxel_size * 0.5 
         path_gains = []
         cell_centers = []
-        for i in range(int(np.ceil((scene_max - scene_min) / voxel_size)[2])):
-            height = first_slice_height + voxel_size * i
-            cm = self.coverage_map(params, voxel_size, height, rx_polarization)
+        dimensions = np.ceil((scene_max - scene_min) / cm_voxel_size).astype(int)
+        for i in range(dimensions[2]):
+            height = first_slice_height + cm_voxel_size * i
+            cm = self.coverage_map(params, cm_voxel_size, height, rx_polarization)
             cell_centers.append(cm.cell_centers)
             path_gains.append(cm.path_gain)
 
-        return CoverageMap3D(path_gain=tf.stack(path_gains, axis=1),
+        return CoverageMap3D(scene=self,
+                             dimensions=dimensions,
+                             cm_voxel_size=cm_voxel_size,
+                             path_gain=tf.stack(path_gains, axis=1),
                              cell_centers=tf.stack(cell_centers, axis=0))
 
 
