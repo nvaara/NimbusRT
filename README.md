@@ -1,10 +1,38 @@
 # NimbusRT 
+NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes 3D point clouds as the intersection geometry.
 
-This branch contains experimental support for Ubuntu 20.04.
+The main branch is continuously developed and currently represents the method for an upcoming paper, which interfaces over Sionna 0.19.1 for electromagnetic computations, enabling differentiable computations. More detailed documentation and examples will be provided in the near future.  
+<details><summary>Previous works</summary>
+
+See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers  
+[Vaara et. al., Ray launching-based computation of exact paths with noisy dense point clouds,” IEEE TAP, 2025](https://ieeexplore.ieee.org/abstract/document/10910023)  
+[Vaara et. al., A ray launching approach for computing exact paths with point clouds, ICASSPW, 2024](https://arxiv.org/abs/2402.13747)
+
+</details>
+
 
 ## Installing
 
+
+### Cloning
+```shell
+git clone https://github.com/nvaara/NimbusRT --recurse-submodules
+```
+
 ### Prerequisites
+
+<details><summary>Windows</summary>
+
+```
+1. Install MSVC C++17 build tools
+2. Install CUDA 11.8+
+3. Install Optix 8.0
+4. Create an environment variable named OPTIX_8_0_PATH that points to the OptiX 8.0 SDK folder
+```
+
+</details>
+
+<details><summary>Linux</summary>
 
 #### **gcc-11 g++-11**
 ```bash
@@ -42,11 +70,8 @@ ccmake ..
 ./bin/optixHair  # optionally test sample program, you should see a rendered face with very colorful hairs
 echo 'export OPTIX_8_0_PATH=/<absoulte>/<path>/<to>/<INSTALL_DIR>/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64' >> ~/.bashrc
 ```
+</details>
 
-### Cloning
-```shell
-git clone https://github.com/nvaara/NimbusRT --recurse-submodules
-```
 
 ### Python Environment
 
@@ -67,3 +92,7 @@ or for editable mode:
 ```shell
 pip install -e .
 ```
+
+### Examples
+
+Coming soon!
