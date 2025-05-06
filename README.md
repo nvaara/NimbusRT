@@ -57,16 +57,17 @@ See Examples folder for demo scripts. The point clouds can be downloaded [here](
 ## Citation
 Journal paper:
 ```bibtex
-@article{vaara2024ray,
+@article{vaara2025ray,
   title={Ray Launching-Based Computation of Exact Paths with Noisy Dense Point Clouds},
   author={Vaara, Niklas and Sangi, Pekka and L{\'o}pez, Miguel Bordallo and Heikkil{\"a}, Janne},
-  journal={arXiv preprint arXiv:2403.06648},
-  year={2024}
+  journal={IEEE Transactions on Antennas and Propagation},
+  year={2025},
+  publisher={IEEE}
 }
 ```
 Conference paper:
 ```bibtex
-@inproceedings{vaara2024ray2,
+@inproceedings{vaara2024ray,
   author={Vaara, Niklas and Sangi, Pekka and López, Miguel Bordallo and Heikkilä, Janne},
   booktitle={2024 IEEE International Conference on Acoustics, Speech, and Signal Processing Workshops (ICASSPW)}, 
   title={A Ray Launching Approach for Computing Exact Paths with Point Clouds}, 

@@ -7,5 +7,5 @@ __pycache__
 .ipynb_checkpoints
 *.pyd
 PtxData.cpp
-Example/Output
-Example/Data
+Examples/Output
+Examples/Data
