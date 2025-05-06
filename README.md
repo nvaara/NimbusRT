@@ -1,11 +1,10 @@
 # NimbusRT
 
 NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes point clouds as the intersection geometry. It computes paths consisting of specular reflections and diffractions between a set of transmitters and receivers.
-
-[ArXiv] [Ray Launching-Based Computation of Exact Paths with Noisy Dense Point Clouds
-](https://arxiv.org/abs/2403.06648)
-
-[ArXiv] [A Ray Launching Approach for Computing Exact Paths with Point Clouds](https://arxiv.org/abs/2402.13747)
+This branch contains the code for papers:  
+[Ray Launching-Based Computation of Exact Paths with Noisy Dense Point Clouds
+](https://ieeexplore.ieee.org/abstract/document/10910023)  
+[A Ray Launching Approach for Computing Exact Paths with Point Clouds](https://arxiv.org/abs/2402.13747)
 
 ## Installing
 
