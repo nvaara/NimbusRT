@@ -1,7 +1,7 @@
 # NimbusRT 
 NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes 3D point clouds as the intersection geometry.
 
-The main branch is continuously developed and currently represents the method for an upcoming paper, which interfaces over Sionna 0.19.1 for electromagnetic computations, enabling differentiable computations. More detailed documentation and examples will be provided in the near future.  
+The main branch is continuously developed and currently represents the method for an upcoming paper, which interfaces over Sionna 0.19.1 for electromagnetic computations. More detailed documentation and examples will be provided in the near future.  
 <details><summary>Previous works</summary>
 
 See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers  
