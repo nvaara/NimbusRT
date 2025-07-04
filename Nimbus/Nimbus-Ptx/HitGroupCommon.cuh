@@ -1,5 +1,5 @@
 #pragma once
-#include "SDF.cuh"
+#include "Explicit.cuh"
 #include "Nimbus/Utils.hpp"
 #include "Ray.cuh"
 
@@ -101,19 +101,38 @@ inline __device__ void OnClosestHitRIS(const Nimbus::EnvironmentData& env)
 	payload->rtPointIndex = Nimbus::Constants::RisHit;
 }
 
-inline __device__ void OnIntersect(const Nimbus::RayTracingParams& rtParams)
+
+inline __device__ bool IntersectWithExplicitSurface(const glm::vec3& rayOrigin,
+													const glm::vec3& rayDirection,
+													const Nimbus::IEPrimitiveInfo& primitiveInfo,
+													const Nimbus::RayTracingParams& rtParams,
+													float& resultDistance,
+													glm::vec3& resultNormal,
+													uint32_t& resultPrimitivePointIndex)
+{
+	float tmin = FindTmin(rayOrigin, rayDirection, rtParams.env.pc.primitivePoints, primitiveInfo, rtParams.env.pc.pointRadius, resultPrimitivePointIndex);
+	if (tmin == FLT_MAX)
+		return false;
+
+	glm::vec3 nAccum = glm::vec3(0.0f);
+	float tAccum = 0.0f;
+	float wAccum = 0.0f;
+	
+	FindIntersection(rayOrigin, rayDirection, rtParams.env.pc.primitivePoints, primitiveInfo, rtParams.env.pc.pointRadius, tmin, rtParams.env.pc.lambdaDistance, nAccum, tAccum, wAccum);
+	resultDistance = tAccum / wAccum;
+	resultNormal = glm::normalize(nAccum / wAccum);
+	return true;
+}
+
+inline __device__ void OnIntersectExplicit(const Nimbus::RayTracingParams& rtParams)
 {
 	glm::vec3 rayOrigin = GetObjectRayOrigin();
 	glm::vec3 rayDirection = GetObjectRayDirection();
 	uint32_t primitiveIndex = optixGetPrimitiveIndex();
 	const Nimbus::IEPrimitiveInfo& ieInfo = rtParams.env.pc.primitiveInfos[optixGetPrimitiveIndex()];
-
-	const OptixAabb& aabb = rtParams.env.pc.primitives[primitiveIndex];
-	glm::vec3 rtPoint = glm::vec3(aabb.minX + aabb.maxX, aabb.minY + aabb.maxY, aabb.minZ + aabb.maxZ) * 0.5f;
-
 	float distance = 0.0f;
 	glm::vec3 normal = glm::vec3(0.0f);
 	uint32_t ppIdx = Nimbus::Constants::InvalidPointIndex;
-	if (IntersectWithImplicitSurface(rayOrigin, rayDirection, rtPoint, ieInfo, rtParams, distance, normal, ppIdx))
+	if (IntersectWithExplicitSurface(rayOrigin, rayDirection, ieInfo, rtParams, distance, normal, ppIdx))
 		optixReportIntersection(distance, 0, __float_as_uint(normal.x), __float_as_uint(normal.y), __float_as_uint(normal.z), ppIdx);
 }

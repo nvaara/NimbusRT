@@ -47,7 +47,7 @@ class Scene():
         self._init_edges(edges)
         return self._native_scene._set_triangle_mesh(vertices, normals, vertex_indices, face_properties, edges, voxel_size, use_face_normals)
 
-    def set_point_cloud(self, cloud, voxel_size=0.0625, point_radius=0.015, sdf_threshold=0.003, lambda_distance=1000):
+    def set_point_cloud(self, cloud, voxel_size=0.0625, point_radius=0.015, sdf_threshold=0.003, lambda_distance=100):
         ply_data = self._get_ply_data(cloud)
         point_cloud, edges = self._get_point_cloud(ply_data)
         self._init_materials(np.max(point_cloud["material"]), edges)

@@ -19,7 +19,7 @@ extern "C" __global__ void __closesthit__ST()
 
 extern "C" __global__ void __intersection__ST()
 {
-	OnIntersect(data.rtParams);
+	OnIntersectExplicit(data.rtParams);
 }
 
 extern "C" __global__ void __closesthit__ST_TR()

@@ -1,8 +1,8 @@
 set(CUDA_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Explicit.cuh
     ${CMAKE_CURRENT_SOURCE_DIR}/HitGroupCommon.cuh
     ${CMAKE_CURRENT_SOURCE_DIR}/Ray.cuh
     ${CMAKE_CURRENT_SOURCE_DIR}/PathRefiner.cuh
-    ${CMAKE_CURRENT_SOURCE_DIR}/SDF.cuh
     ${CMAKE_CURRENT_SOURCE_DIR}/Ptx_Primitive.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Ptx_Trace.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Ptx_Triangle.cu

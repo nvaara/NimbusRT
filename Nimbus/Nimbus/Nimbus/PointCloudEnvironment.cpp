@@ -2,7 +2,6 @@
 #include "Nimbus/Utils.hpp"
 #include "KernelData.hpp"
 #include "Logger.hpp"
-#include <unordered_map>
 #include <memory>
 #include <array>
 
@@ -139,7 +138,7 @@ namespace Nimbus
 
         for (size_t i = 0; i < numPoints; ++i)
         {
-            const PointData& point = points[i];
+            const PointData& point = points[i];            
             PointNode node{};
             node.position = point.position;
             node.normal = point.normal;
@@ -151,7 +150,8 @@ namespace Nimbus
             m_Aabb.min = glm::min(m_Aabb.min, point.position);
             m_Aabb.max = glm::max(m_Aabb.max, point.position);
         }
-        constexpr float bias = 0.01f;
+        float pointRadiusSq = m_PointRadius * m_PointRadius;
+        float bias = sqrt(pointRadiusSq + pointRadiusSq + pointRadiusSq) + 0.01f;
         m_Aabb.min -= bias;
         m_Aabb.max += bias;
         return pointNodes;
@@ -164,28 +164,31 @@ namespace Nimbus
         return voxelDimensions.x > 0 && voxelDimensions.y > 0 && voxelDimensions.z > 0 && voxelSize > 0.0f;
     }
 
+    void PointCloudEnvironment::LinkNode(std::vector<glm::uvec2>& voxelNodeIndices, std::unordered_map<uint64_t, uint32_t>& primitiveHashMap, PointNode& pointNode, uint32_t pointIndex)
+    {
+        uint64_t voxelID = Utils::WorldToVoxelID(pointNode.position, m_VoxelWorldInfo);
+        uint64_t id = voxelID;
+        auto it = primitiveHashMap.find(id);
+        if (it == primitiveHashMap.end())
+        {
+            it = primitiveHashMap.try_emplace(id, m_IeCount++).first;
+            voxelNodeIndices.emplace_back(Nimbus::Constants::InvalidPointIndex, 0);
+        }
+        glm::uvec2& parent = voxelNodeIndices.at(it->second);
+        pointNode.ieNext = parent.x;
+        parent.x = pointIndex;
+        ++parent.y;
+    }
+
     std::vector<glm::uvec2> PointCloudEnvironment::LinkPointNodes(std::vector<PointNode>& pointNodes)
     {
         std::vector<glm::uvec2> voxelNodeIndices;
         voxelNodeIndices.reserve(m_VoxelWorldInfo.count);
         std::unordered_map<uint64_t, uint32_t> primitiveHashMap;
-
+        
         for (uint32_t pointIndex = 0; pointIndex < pointNodes.size(); ++pointIndex)
-        {
-            PointNode& pointNode = pointNodes[pointIndex];
-            uint64_t voxelID = Utils::WorldToVoxelID(pointNode.position, m_VoxelWorldInfo);
-            uint64_t id = (voxelID << 32u) | pointNode.label;
-            auto it = primitiveHashMap.find(id);
-            if (it == primitiveHashMap.end())
-            {
-                it = primitiveHashMap.try_emplace(id, m_IeCount++).first;
-                voxelNodeIndices.emplace_back(Nimbus::Constants::InvalidPointIndex, 0);
-            }
-            glm::uvec2& parent = voxelNodeIndices.at(it->second);
-            pointNode.ieNext = parent.x;
-            parent.x = pointIndex;
-            ++parent.y;
-        }
+            LinkNode(voxelNodeIndices, primitiveHashMap, pointNodes[pointIndex], pointIndex);
+        
         return voxelNodeIndices;
     }
 

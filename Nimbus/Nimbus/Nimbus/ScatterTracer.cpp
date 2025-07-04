@@ -4,6 +4,7 @@
 #include "Logger.hpp"
 #include <fstream>
 #include <memory>
+#include "Profiler.hpp"
 
 namespace Nimbus
 {
@@ -185,6 +186,7 @@ namespace Nimbus
 
     std::unique_ptr<PathStorage> ScatterTracer::Trace()
     {
+        PROFILE_SCOPE();
         ComputeVisibility();
         for (uint32_t txID = 0u; txID < static_cast<uint32_t>(m_TxCount); ++txID)
         {

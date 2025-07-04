@@ -30,7 +30,7 @@ extern "C" __global__ void __closesthit__ST_RIS()
 
 extern "C" __global__ void __intersection__ST()
 {
-	OnIntersect(data.rtParams);
+	OnIntersectExplicit(data.rtParams);
 }
 
 inline __device__ bool AddReceivedScatteredPath(const Nimbus::PathInfo& pathInfo, uint32_t pathDataIndex)

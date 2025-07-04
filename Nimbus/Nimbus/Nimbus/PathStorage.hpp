@@ -26,6 +26,9 @@ namespace Nimbus
 		SionnaPathType GetSionnaPathType(PathType type);
 
 	private:
+		void ProcessPath(SionnaPathData& pathData, uint32_t pathIndex, float voxelArea);
+
+	private:
 		struct InteractionData
 		{
 			std::vector<glm::vec3> interactions;

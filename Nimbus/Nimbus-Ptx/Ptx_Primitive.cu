@@ -7,16 +7,16 @@
 
 __constant__ Nimbus::STData data;
 
-inline __device__ void OptimizeAabbSize(OptixAabb& aabb, const glm::vec3& voxelCenter, float halfVoxelSize)
+inline __device__ void OptimizeAabbSize(OptixAabb& aabb, const glm::vec3& voxelCenter, float halfVoxelSize, float pointRadius)
 {
-	aabb.minX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x - halfVoxelSize : aabb.minX) - data.pointRadius;
-	aabb.maxX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x + halfVoxelSize : aabb.maxX) + data.pointRadius;
+	aabb.minX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x - halfVoxelSize : aabb.minX) - pointRadius;
+	aabb.maxX = ((aabb.maxX - aabb.minX >= halfVoxelSize) ? voxelCenter.x + halfVoxelSize : aabb.maxX) + pointRadius;
 	
-	aabb.minY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y - halfVoxelSize : aabb.minY) - data.pointRadius;
-	aabb.maxY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y + halfVoxelSize : aabb.maxY) + data.pointRadius;
+	aabb.minY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y - halfVoxelSize : aabb.minY) - pointRadius;
+	aabb.maxY = ((aabb.maxY - aabb.minY >= halfVoxelSize) ? voxelCenter.y + halfVoxelSize : aabb.maxY) + pointRadius;
 	
-	aabb.minZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z - halfVoxelSize : aabb.minZ) - data.pointRadius;
-	aabb.maxZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z + halfVoxelSize : aabb.maxZ) + data.pointRadius;
+	aabb.minZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z - halfVoxelSize : aabb.minZ) - pointRadius;
+	aabb.maxZ = ((aabb.maxZ - aabb.minZ >= halfVoxelSize) ? voxelCenter.z + halfVoxelSize : aabb.maxZ) + pointRadius;
 }
 
 extern "C" __global__ void CreatePrimitives()
@@ -68,6 +68,6 @@ extern "C" __global__ void CreatePrimitives()
 		totalPos += point.position;
 		nodeIndex = node.ieNext;
 	}
-	OptimizeAabbSize(aabb, world, data.voxelWorldInfo.halfSize);
+	OptimizeAabbSize(aabb, world, data.voxelWorldInfo.halfSize, data.pointRadius);
 	rtPoint = totalPos / static_cast<float>(nodeData.y);
 }

@@ -30,7 +30,7 @@ extern "C" __global__ void __closesthit__ST_RIS()
 
 extern "C" __global__ void __intersection__ST()
 {
-	OnIntersect(data.rtParams);
+	OnIntersectExplicit(data.rtParams);
 }
 
 inline __device__ void SaveLosPath(uint32_t txID, uint32_t rxID)

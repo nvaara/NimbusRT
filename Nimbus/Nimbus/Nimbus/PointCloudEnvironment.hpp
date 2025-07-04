@@ -2,6 +2,7 @@
 #include "CudaUtils.hpp"
 #include "Environment.hpp"
 #include <memory>
+#include <unordered_map>
 
 namespace Nimbus
 {
@@ -40,6 +41,8 @@ namespace Nimbus
 		std::vector<PointNode> LoadPoints(const PointData* points, size_t numPoints);
 		bool ComputeVoxelWorld(float voxelSize);
 		std::vector<glm::uvec2> LinkPointNodes(std::vector<PointNode>& pointNodes);
+		void LinkNode(std::vector<glm::uvec2>& indices, std::unordered_map<uint64_t, uint32_t>& map, PointNode& pointNode, uint32_t pointIndex);
+		void ExpandToNeighboringVoxels(std::vector<glm::uvec2>& voxelNodeIndices, std::unordered_map<uint64_t, uint32_t>& primitiveHashMap, PointNode& pointNode, uint32_t pointIndex);
 		bool GenerateRayTracingData(const std::vector<PointNode>& pointNodes, const std::vector<glm::uvec2>& voxelNodeIndices);
 
 	private:

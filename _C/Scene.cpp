@@ -88,7 +88,6 @@ std::unique_ptr<SionnaPathWrapper> Scene::ComputeSionnaPathData(const Nimbus::Sc
 
 	if (m_Environment && st.Prepare(*m_Environment, params, txPtr, static_cast<uint32_t>(txs.shape(0)), rxPtr, static_cast<uint32_t>(rxs.shape(0)), risData))
 	{
-		PROFILE_SCOPE();
 		return std::make_unique<SionnaPathWrapper>(*m_Environment, st.Trace());
 	}
 	throw std::runtime_error("Failed to compute sionna path data.");
@@ -110,7 +109,6 @@ std::unique_ptr<SionnaCoverageWrapper> Scene::ComputeSionnaCoverageMap(const Nim
 	{
 		if (st.Prepare(*m_Environment, params, txPtr, static_cast<uint32_t>(txs.shape(0)), receivers.data(), static_cast<uint32_t>(receivers.size()), risData))
 		{
-			PROFILE_SCOPE();
 			return std::make_unique<SionnaCoverageWrapper>(*m_Environment, st.Trace(), std::move(mapInfo));
 		}
 	}

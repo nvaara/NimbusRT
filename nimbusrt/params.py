@@ -14,7 +14,7 @@ class RTParams(NativeRTParams):
                  refine_alpha=0.4,
                  refine_beta=0.4,
                  refine_angle_degrees_threshold=1.0,
-                 refine_distance_threshold=0.002,
+                 refine_distance_threshold=0.01,
                  ray_bias=0.05):
 
         super().__init__()

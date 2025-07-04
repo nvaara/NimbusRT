@@ -21,7 +21,7 @@ namespace Nimbus
         int m_Line;
     };
 }
-
+//#define LOGGING_ENABLED
 #ifdef LOGGING_ENABLED
 #define MERGE_NAME2(x, y) x ## y
 #define MERGE_NAME(x, y) MERGE_NAME2(x, y)
