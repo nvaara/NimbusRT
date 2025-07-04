@@ -1,7 +1,7 @@
 # NimbusRT 
 NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes 3D point clouds as the intersection geometry.
 
-The main branch is continuously developed and currently represents the method for an upcoming paper, which interfaces over Sionna 0.19.1 for electromagnetic computations. More detailed documentation and examples will be provided in the near future.  
+This branch contains the implementation for the paper "Differentiable High-Performance Ray Tracing-Based Simulation of Radio Propagation with Point Clouds"
 <details><summary>Previous works</summary>
 
 See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers  
@@ -10,7 +10,14 @@ See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers
 
 </details>
 
-
+## Reproducing Results
+```
+1. Download point clouds
+2. For measuring the performance of ray tracing, compile Nimbus with uncomment the line #define LOGGING_ENABLED in Profiler.hpp
+3. Place the models in the Examples folder. This folder contains the scripts to reproduce results
+3. To evaluate performance, run corridor.py with various max_depth in nrt.Params
+4. To reproduce the material property results, run material.py
+```
 ## Installing
 
 
