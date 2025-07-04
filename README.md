@@ -15,8 +15,8 @@ See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers
 1. Download point clouds [here](https://drive.google.com/file/d/1pa2IzZ754UlH1eGw3vZi43tsa_qYC2Vl/view?usp=sharing)
 2. For measuring the performance of path computation, compile Nimbus #define LOGGING_ENABLED in Profiler.hpp
 3. Place the models in the Examples folder. This folder contains the scripts to reproduce results
-3. To evaluate performance, run corridor.py with various max_depth in nrt.Params
-4. To reproduce the material property results, run material.py
+3. To evaluate performance, run corridor.py with various max_depth in nrt.RTParams
+4. To reproduce the material optimization results, run material.py
 
 ## Installing
 
