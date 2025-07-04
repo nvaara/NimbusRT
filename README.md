@@ -1,8 +1,11 @@
 # NimbusRT 
-NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes 3D point clouds as the intersection geometry.
+NimbusRT is a ray launching-based tool for radio channel characterization, which mainly utilizes 3D point clouds to compute the intersections.
 
-The main branch is continuously developed and currently represents the method for an upcoming paper, which interfaces over Sionna 0.19.1 for electromagnetic computations. More detailed documentation and examples will be provided in the near future.  
-<details><summary>Previous works</summary>
+The main branch is continuously developed and currently most accurately reflects the method presented in the paper "Differentiable High-Performance Ray Tracing-Based Simulation of Radio Propagation with Point Clouds" (link coming soon). It interfaces over Sionna 0.19.1 for electromagnetic computations. More detailed documentation and examples will be provided in the near future.  
+<details><summary>Code for Papers</summary>
+
+See branch [hp](https://github.com/nvaara/NimbusRT/tree/hp) for the paper
+"Differentiable High-Performance Ray Tracing-Based Simulation of Radio Propagation with Point Clouds"
 
 See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers  
 [Vaara et. al., Ray launching-based computation of exact paths with noisy dense point clouds,” IEEE TAP, 2025](https://ieeexplore.ieee.org/abstract/document/10910023)  
