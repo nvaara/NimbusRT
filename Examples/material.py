@@ -101,8 +101,9 @@ def generate_gt_paths(scene, params, rx_pos):
     scene.get("rx").position = rx_pos
     return scene.trace_paths(params)
 
-def freq_to_time(H_f):
-    return tf.signal.ifft(tf.signal.ifftshift(H_f, axes=-1))
+def freq_to_time(H_f, frequencies, tap_delays):
+    exp_matrix = tf.exp(tf.complex(0.0, 2.0 * np.pi * tf.tensordot(tap_delays, frequencies, axes=0), H_f.dtype))
+    return tf.linalg.matvec(H_f, exp_matrix) / tap_delays.shape[0]
 
 def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
     paths = []
@@ -110,7 +111,8 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
     h_t_gts = []
     num_paths = []
     h_t_train = []
-    
+    tap_ind = tf.range(0, num_samples, dtype=tf.float32)
+    tap_delays = tap_ind / bandwidth
     params = nrt.RTParams(max_depth=2,
                           los=True,
                           reflection=True,
@@ -141,7 +143,7 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
         num_paths.append(tf.reshape(gt_a, [-1]).shape[0])
         print(f"Path coefficients: {gt_a.shape}")
         H_f_gts.append(cir_to_ofdm_channel(frequencies, gt_a, gt_tau))
-        h_t_gts.append(freq_to_time(H_f_gts[-1]))
+        h_t_gts.append(freq_to_time(H_f_gts[-1], frequencies, tap_delays))
     h_t_train = h_t_gts.copy()
     print("Generated GT paths.")
 
@@ -168,7 +170,7 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
             fields.normalize_delays = False
             a, tau = fields.cir()
             H_f = cir_to_ofdm_channel(frequencies, a, tau)
-            h_t = freq_to_time(H_f)
+            h_t = freq_to_time(H_f, frequencies, tap_delays)
             h_t_train[set_index] = h_t
             loss = tf.reduce_mean(tf.abs(h_t-h_t_gt)**2) / tf.reduce_mean((tf.abs(h_t_gt)**2))
             
@@ -181,9 +183,6 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
             conductivity_iter[iter] = trainer.conductivity.numpy()
             scattering_coefficient_iter[iter] = trainer.scattering_coefficient.numpy()
     
-    tap_ind = tf.range(0, num_samples, dtype=tf.float32)
-    tap_delays = tap_ind / bandwidth
-
     return relative_permittivity_iter.T, conductivity_iter.T, scattering_coefficient_iter.T, np.array(h_t_train), np.array(h_t_gts), tap_delays.numpy(), np.array(num_paths)
 
 

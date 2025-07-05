@@ -2,21 +2,14 @@
 NimbusRT is a ray launching-based tool for radio channel characterization, which utilizes 3D point clouds as the intersection geometry.
 
 This branch contains the implementation for the paper "Differentiable High-Performance Ray Tracing-Based Simulation of Radio Propagation with Point Clouds"
-<details><summary>Previous works</summary>
-
-See branch [vct](https://github.com/nvaara/NimbusRT/tree/vct) for papers  
-[Vaara et. al., Ray launching-based computation of exact paths with noisy dense point clouds,” IEEE TAP, 2025](https://ieeexplore.ieee.org/abstract/document/10910023)  
-[Vaara et. al., A ray launching approach for computing exact paths with point clouds, ICASSPW, 2024](https://arxiv.org/abs/2402.13747)
-
-</details>
 
 ## Reproducing Results
 
 1. Download point clouds [here](https://drive.google.com/file/d/1pa2IzZ754UlH1eGw3vZi43tsa_qYC2Vl/view?usp=sharing)
-2. For measuring the performance of path computation, compile Nimbus #define LOGGING_ENABLED in Profiler.hpp
-3. Place the models in the Examples folder. This folder contains the scripts to reproduce results
-3. To evaluate performance, run corridor.py with various max_depth in nrt.RTParams
-4. To reproduce the material optimization results, run material.py
+2. For measuring the performance of path computation, compile Nimbus by uncommenting the line #define LOGGING_ENABLED in Profiler.hpp
+3. Place the models in the Examples folder. This folder contains the scripts to reproduce results.
+3. To evaluate performance, run corridor.py with various max_depth in nrt.RTParams. Diffuse scattering can be disabled in by setting scattering=False in nrt.RTParams.
+4. To reproduce the material optimization results, run material.py.
 
 ## Installing
 
