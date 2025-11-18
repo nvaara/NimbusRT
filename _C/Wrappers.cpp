@@ -382,6 +382,11 @@ int32_t SionnaPathWrapper::GetMaxLinkPaths(uint32_t sionnaPathType) const
 	return static_cast<int32_t>(m_SionnaData.maxLinkPaths[sionnaPathType]);
 }
 
+int32_t SionnaPathWrapper::GetSampleCount() const
+{
+	return static_cast<int32_t>(m_SionnaData.sampleCount);
+}
+
 SionnaCoverageWrapper::SionnaCoverageWrapper(const Nimbus::Environment& env, std::unique_ptr<Nimbus::PathStorage>&& path, Nimbus::CoverageMapInfo&& mapInfo)
 	: SionnaPathWrapper(env, std::move(path))
 	, m_CoverageMapInfo(std::move(mapInfo))

@@ -232,6 +232,7 @@ namespace Nimbus
             ComputeRisPaths();
             m_Environment->Transmit(m_STRTDataBuffer, glm::uvec3(m_IeCount, 1u, 1u));
             m_PathCountBuffer.Download(&m_PropagationPathCount, 1u);
+            m_PathStorage->SetSampleCount(txID, m_PropagationPathCount);
         }
     }
 

@@ -87,5 +87,6 @@ namespace Nimbus
 		std::vector<glm::vec3> receivers;
 		std::array<uint32_t, PathTypeCount> maxLinkPaths;
 		std::array<SionnaPathTypeData, PathTypeCount> paths;
+		uint32_t sampleCount;
 	};
 }
