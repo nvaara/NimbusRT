@@ -77,6 +77,7 @@ public:
 	py::array_t<float, py::array::c_style> GetDistanceRxRis(uint32_t sionnaPathType) const;
 
 	int32_t GetMaxLinkPaths(uint32_t sionnaPathType) const;
+	int32_t GetSampleCount() const;
 
 private:
 	Nimbus::SionnaPathData m_SionnaData;

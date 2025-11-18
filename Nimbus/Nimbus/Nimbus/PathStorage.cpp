@@ -10,6 +10,7 @@ namespace Nimbus
 		, m_Receivers(rxs, rxs + rxCount)
 		, m_PathCounts(txCount * rxCount)
 		, m_MaxLinkPaths()
+		, m_SampleCounts(txCount, 0u)
 	{
 		for (auto& counts : m_PathCounts)
 			counts = {};
@@ -106,7 +107,7 @@ namespace Nimbus
 		return data;
 	}
 
-	void PathStorage::ProcessPath(SionnaPathData& sionnaData, uint32_t pathIndex, float voxelArea)
+	void PathStorage::ProcessPath(SionnaPathData& sionnaData, uint32_t pathIndex)
 	{
 		SionnaPathType pathType = GetSionnaPathType(m_PathTypes[pathIndex]);
 		uint32_t typeIndex = static_cast<uint32_t>(pathType);
@@ -167,10 +168,11 @@ namespace Nimbus
 
 			glm::vec3 lastIncident = sionnaData.paths[typeIndex].scattering.lastIncident[pathDataIndex];
 			glm::vec3 lastNormal = sionnaData.paths[typeIndex].scattering.lastNormal[pathDataIndex];
-			float scaling = glm::max(glm::sqrt(glm::abs(glm::dot(lastNormal, lastIncident)) * voxelArea), 1e-6f);
+			
 			float totalDistance = sionnaData.paths[typeIndex].totalDistance[pathDataIndex];
-			sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex] = glm::length(m_InteractionData[numInteractions - 1].interactions[pathIndex] - rx) / scaling;
-			sionnaData.paths[typeIndex].scattering.distToLastIa[pathDataIndex] = (totalDistance - sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex]);
+			float scatDist = glm::length(m_InteractionData[numInteractions - 1].interactions[pathIndex] - rx);
+			sionnaData.paths[typeIndex].scattering.distFromLastIaToRx[pathDataIndex] = scatDist;
+			sionnaData.paths[typeIndex].scattering.distToLastIa[pathDataIndex] = (totalDistance - scatDist);
 			break;
 		}
 		case SionnaPathType::RIS:
@@ -191,20 +193,22 @@ namespace Nimbus
 	SionnaPathData PathStorage::ToSionnaPathData(const Environment& env)
 	{
 		SionnaPathData sionnaData{};
-		float voxelSize = env.GetVoxelSize();
-		float voxelArea = voxelSize * voxelSize;
+		float sampleSum = 0.0f;
+		for (uint32_t v : m_SampleCounts)
+			sampleSum += static_cast<float>(v);
 
 		sionnaData.transmitters = m_Transmitters;
 		sionnaData.receivers = m_Receivers;
 		sionnaData.maxNumIa = m_MaxNumInteractions;
 		sionnaData.maxLinkPaths = m_MaxLinkPaths;
+		sionnaData.sampleCount = static_cast<uint32_t>(sampleSum / static_cast<float>(m_SampleCounts.size()));
 		if (m_MaxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] > 0u)
 			sionnaData.maxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] = env.GetRisPointCount();
 		sionnaData.ReservePaths();
 
 		uint32_t numTotalPaths = static_cast<uint32_t>(m_TxIDs.size());
 		for (uint32_t pathIndex = 0; pathIndex < numTotalPaths; ++pathIndex)
-			ProcessPath(sionnaData, pathIndex, voxelArea);
+			ProcessPath(sionnaData, pathIndex);
 		
 		return sionnaData;
 	}
@@ -226,5 +230,10 @@ namespace Nimbus
 			assert(false);
 			return SionnaPathType::Specular;
 		}
+	}
+
+	void PathStorage::SetSampleCount(uint32_t txID, uint32_t sampleCount)
+	{
+		m_SampleCounts[txID] = sampleCount;
 	}
 }

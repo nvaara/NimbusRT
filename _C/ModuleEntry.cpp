@@ -95,7 +95,8 @@ PYBIND11_MODULE(_C, m)
 		.def("cos_theta_m", &SionnaPathWrapper::GetCosThetaRx)
 		.def("distance_tx_ris", &SionnaPathWrapper::GetDistanceTxRis)
 		.def("distance_rx_ris", &SionnaPathWrapper::GetDistanceRxRis)
-		.def("max_link_paths", &SionnaPathWrapper::GetMaxLinkPaths);
+		.def("max_link_paths", &SionnaPathWrapper::GetMaxLinkPaths)
+		.def_property_readonly("num_samples", &SionnaPathWrapper::GetSampleCount);
 
 	py::class_<SionnaCoverageWrapper>(m, "NativeSionnaCoverageMapData")
 		.def_property_readonly("sources", &SionnaCoverageWrapper::GetTransmitters)

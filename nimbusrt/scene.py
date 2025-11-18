@@ -563,8 +563,8 @@ class Scene():
             tmp_sct_paths.total_distance = tf.convert_to_tensor(sionna_path_data.total_distance(srt.Paths.SCATTERED), dtype=real_dtype)
             tmp_sct_paths.k_i = tf.convert_to_tensor(sionna_path_data.k_i(srt.Paths.SCATTERED), dtype=real_dtype)
             tmp_sct_paths.k_r = tf.convert_to_tensor(sionna_path_data.k_r(srt.Paths.SCATTERED), dtype=real_dtype)
-            tmp_sct_paths.num_samples = 1.0 #To Nullify Sionnas Probability-based scaling
-            tmp_sct_paths.scat_keep_prob = 4 * tf.cast(PI, self.dtype.real_dtype) #To Nullify Sionnas Probability-based scaling
+            tmp_sct_paths.num_samples = sionna_path_data.num_samples
+            tmp_sct_paths.scat_keep_prob = 1.0
             tmp_sct_paths.scat_last_objects = tf.convert_to_tensor(sionna_path_data.scat_last_objects(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_last_vertices = tf.convert_to_tensor(sionna_path_data.scat_last_vertices(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_last_k_i = tf.convert_to_tensor(sionna_path_data.scat_last_k_i(srt.Paths.SCATTERED))
@@ -572,7 +572,6 @@ class Scene():
             tmp_sct_paths.scat_last_normals = tf.convert_to_tensor(sionna_path_data.scat_last_normals(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_src_2_last_int_dist = tf.convert_to_tensor(sionna_path_data.scat_src_2_last_int_dist(srt.Paths.SCATTERED))
             tmp_sct_paths.scat_2_target_dist = tf.convert_to_tensor(sionna_path_data.scat_2_target_dist(srt.Paths.SCATTERED))
-            #Due to our discrete deterministic area-based scattering, we apply the appropriate scaling cos(theta_i)*dA into scat_2_target_dist
         
         #Diffraction
         if sionna_path_data.max_link_paths(srt.Paths.DIFFRACTED) > 0:
