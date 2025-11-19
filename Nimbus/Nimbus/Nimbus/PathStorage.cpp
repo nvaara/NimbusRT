@@ -10,7 +10,6 @@ namespace Nimbus
 		, m_Receivers(rxs, rxs + rxCount)
 		, m_PathCounts(txCount * rxCount)
 		, m_MaxLinkPaths()
-		, m_SampleCounts(txCount, 0u)
 	{
 		for (auto& counts : m_PathCounts)
 			counts = {};
@@ -193,15 +192,11 @@ namespace Nimbus
 	SionnaPathData PathStorage::ToSionnaPathData(const Environment& env)
 	{
 		SionnaPathData sionnaData{};
-		float sampleSum = 0.0f;
-		for (uint32_t v : m_SampleCounts)
-			sampleSum += static_cast<float>(v);
-
 		sionnaData.transmitters = m_Transmitters;
 		sionnaData.receivers = m_Receivers;
 		sionnaData.maxNumIa = m_MaxNumInteractions;
 		sionnaData.maxLinkPaths = m_MaxLinkPaths;
-		sionnaData.sampleCount = static_cast<uint32_t>(sampleSum / static_cast<float>(m_SampleCounts.size()));
+		sionnaData.sampleCount = env.ApproximateSampleCount();
 		if (m_MaxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] > 0u)
 			sionnaData.maxLinkPaths[static_cast<uint32_t>(SionnaPathType::RIS)] = env.GetRisPointCount();
 		sionnaData.ReservePaths();
@@ -230,10 +225,5 @@ namespace Nimbus
 			assert(false);
 			return SionnaPathType::Specular;
 		}
-	}
-
-	void PathStorage::SetSampleCount(uint32_t txID, uint32_t sampleCount)
-	{
-		m_SampleCounts[txID] = sampleCount;
 	}
 }
