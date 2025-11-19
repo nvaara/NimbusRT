@@ -17,6 +17,18 @@ namespace Nimbus
         return aabb.max - aabb.min;
     }
 
+    uint32_t Environment::ApproximateSampleCount() const
+    {
+        const Aabb& aabb = GetAabb();
+        float approxAvgDist = glm::length(aabb.max - aabb.min) / 4.0f;
+        glm::vec3 initDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+        glm::vec3 initPoint = approxAvgDist * initDir;
+        glm::vec3 offsetPoint = initPoint + glm::vec3(GetVoxelSize(), 0.0f, GetVoxelSize());
+        glm::vec3 offsetDir = glm::normalize(offsetPoint);
+        uint32_t samples = static_cast<uint32_t>(2.0f / (1.0f - glm::dot(offsetDir, initDir)));
+        return samples;
+    }
+
     bool Environment::InitRisGasData(const RisData& risData)
     {
         m_RisData = {};

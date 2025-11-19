@@ -24,7 +24,6 @@ namespace Nimbus
 		PathData ToPathData();
 		SionnaPathData ToSionnaPathData(const Environment& env);
 		SionnaPathType GetSionnaPathType(PathType type);
-		void SetSampleCount(uint32_t txID, uint32_t sampleCount);
 
 	private:
 		void ProcessPath(SionnaPathData& pathData, uint32_t pathIndex);
@@ -43,7 +42,6 @@ namespace Nimbus
 		std::vector<glm::vec3> m_Transmitters;
 		std::vector<glm::vec3> m_Receivers;
 		std::array<uint32_t, SionnaPathData::PathTypeCount> m_MaxLinkPaths;
-		std::vector<uint32_t> m_SampleCounts;
 		std::vector<std::array<uint32_t, SionnaPathData::PathTypeCount>> m_PathCounts;
 		std::unordered_map<PathHash, PathHashMapInfo> m_PathMap;
 		std::vector<InteractionData> m_InteractionData;
