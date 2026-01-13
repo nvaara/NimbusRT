@@ -105,12 +105,23 @@ def freq_to_time(H_f, frequencies, tap_delays):
     exp_matrix = tf.exp(tf.complex(0.0, 2.0 * np.pi * tf.tensordot(tap_delays, frequencies, axes=0), H_f.dtype))
     return tf.linalg.matvec(H_f, exp_matrix) / tap_delays.shape[0]
 
-def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
+def rms_delay_spread(power, tap_delays):
+    pw = tf.reshape(power, [-1])
+    total_power = tf.reduce_sum(pw)
+    time_weighted_power = tf.reduce_sum(tap_delays * pw)
+    tau_bar =  time_weighted_power / total_power
+    squared_delays = (tap_delays-tau_bar)**2
+    tau_rms = tf.sqrt(tf.reduce_sum(squared_delays*pw) / total_power)
+    return tau_rms, tau_bar
+
+def train(scene, max_iters,  gt_permittivity, gt_conductivity, gt_scattering, bandwidth=1500e6, num_samples=129, eval_n_iter=500):
     paths = []
     H_f_gts = []
     h_t_gts = []
     num_paths = []
     h_t_train = []
+    h_t_test = None
+
     tap_ind = tf.range(0, num_samples, dtype=tf.float32)
     tap_delays = tap_ind / bandwidth
     params = nrt.RTParams(max_depth=2,
@@ -126,14 +137,16 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
                           refine_max_correction_iterations=10
                           )
 
-    frequencies = scene.frequency + tf.range(-(num_samples - 1) / 2, (num_samples - 1) / 2 + 1, dtype=tf.float32) * bandwidth / (num_samples - 1)
+    frequencies = tf.cast(tf.linspace(scene.frequency-bandwidth/2, scene.frequency+bandwidth/2, num_samples), dtype=tf.float32)
     rx_positions =[
         np.array([0.0, 2.0, 0.3]),
         np.array([3.35, 2.5, 0.4]),
         np.array([-0.6, -0.1, 0.35]),
         np.array([1.65, 2.8, 0.25]),
         np.array([1.85, -0.7, 0.35]),
-        np.array([4.85, -0.7, 0.35])
+        np.array([4.85, -0.7, 0.35]),
+        #Test
+        np.array([3.5, 1.25, 0.35])
     ]
     for i in range(len(rx_positions)):
         paths.append(generate_gt_paths(scene, params, rx_positions[i]))
@@ -145,6 +158,7 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
         H_f_gts.append(cir_to_ofdm_channel(frequencies, gt_a, gt_tau))
         h_t_gts.append(freq_to_time(H_f_gts[-1], frequencies, tap_delays))
     h_t_train = h_t_gts.copy()
+    h_t_train.pop()  #Exclude Test RX
     print("Generated GT paths.")
 
     trainer = MaterialTrainer(scene=scene,
@@ -160,9 +174,14 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
     relative_permittivity_iter = np.zeros((max_iters, scene.num_material_labels))
     conductivity_iter = np.zeros((max_iters, scene.num_material_labels))
     scattering_coefficient_iter = np.zeros((max_iters, scene.num_material_labels))
+    RE_ds = np.zeros(int(max_iters / eval_n_iter) + 1)
+    MRE_rel = np.zeros(int(max_iters / eval_n_iter) + 1)
+    MRE_con = np.zeros(int(max_iters / eval_n_iter) + 1)
+    MRE_sca = np.zeros(int(max_iters / eval_n_iter) + 1)
+    eval_iters = np.zeros(int(max_iters / eval_n_iter) + 1, dtype=np.int32)
 
     for iter in range(max_iters):
-        set_index = np.random.randint(0, len(paths))
+        set_index = np.random.randint(0, len(h_t_train))
         h_t_gt = h_t_gts[set_index]
 
         with tf.GradientTape() as tape:
@@ -182,8 +201,24 @@ def train(scene, max_iters, bandwidth=1500e6, num_samples=129):
             relative_permittivity_iter[iter] = trainer.relative_permittivity.numpy()
             conductivity_iter[iter] = trainer.conductivity.numpy()
             scattering_coefficient_iter[iter] = trainer.scattering_coefficient.numpy()
-    
-    return relative_permittivity_iter.T, conductivity_iter.T, scattering_coefficient_iter.T, np.array(h_t_train), np.array(h_t_gts), tap_delays.numpy(), np.array(num_paths)
+        
+        if (iter+1) % eval_n_iter == 0 or iter == 0:
+            test_fields = scene.compute_fields(paths[-1], check_scene=False, scat_random_phases=False)
+            test_fields.normalize_delays = False
+            test_a, test_tau = test_fields.cir()
+            H_f_test = cir_to_ofdm_channel(frequencies, test_a, test_tau)
+            h_t_test = freq_to_time(H_f_test, frequencies, tap_delays)
+            eval_idx = int((iter+1) / eval_n_iter)
+            MRE_rel[eval_idx] = (tf.abs(trainer.relative_permittivity - gt_permittivity[:, 0]) / gt_permittivity[:, 0]).numpy().mean()
+            MRE_con[eval_idx] = (tf.abs(trainer.conductivity - gt_conductivity[:, 0]) / gt_conductivity[:, 0]).numpy().mean()
+            MRE_sca[eval_idx] = (tf.abs(trainer.scattering_coefficient - gt_scattering[:, 0]) / gt_scattering[:, 0]).numpy().mean()
+            eval_iters[eval_idx] = iter+1
+            ds_test, tau_bar_test = rms_delay_spread(tf.abs(h_t_test)**2, tap_delays)
+            ds_gt, tau_bar_gt = rms_delay_spread(tf.abs(h_t_gts[-1])**2, tap_delays)
+            RE_ds[eval_idx] = (tf.abs(ds_gt - ds_test) / (ds_gt)).numpy()
+            print(ds_test * 1e9, ", GT: ", ds_gt * 1e9, RE_ds[eval_idx])
+
+    return relative_permittivity_iter.T, conductivity_iter.T, scattering_coefficient_iter.T, np.array(h_t_train), np.array(h_t_gts), tap_delays.numpy(), np.array(num_paths), MRE_rel, MRE_con, MRE_sca, RE_ds, eval_iters
 
 
 def generate_experiment_ply(scene, point_cloud, output_file_name="room0_point_cloud.ply"):
@@ -215,6 +250,7 @@ if __name__ == "__main__":
         "itu_chipboard"
     ]
     max_iters = 5000
+    eval_n_iter = 1000
     gt_permittivity = np.zeros((len(mat_list), max_iters))
     gt_conductivity = np.zeros((len(mat_list), max_iters))
     gt_scattering = np.zeros((len(mat_list), max_iters))
@@ -243,7 +279,7 @@ if __name__ == "__main__":
     scene.add(Receiver(name="rx", position=[0.0, 2.0, 0.5]))
 
     #Compute GT coefficients
-    rel, con, scat, h_t_train, h_t_gt, tap_delays, num_paths = train(scene, max_iters, bandwidth=1500e6, num_samples=129)
+    rel, con, scat, h_t_train, h_t_gt, tap_delays, num_paths, MRE_rel, MRE_con, MRE_sca, RE_ds, eval_iters = train(scene, max_iters, gt_permittivity, gt_conductivity, gt_scattering, bandwidth=1500e6, num_samples=129, eval_n_iter=eval_n_iter)
     np.savez('train_result.npz',
                 gt_conductivity=gt_conductivity,
                 gt_permittivity=gt_permittivity,
@@ -253,6 +289,11 @@ if __name__ == "__main__":
                 train_scattering=scat,
                 h_t_train=h_t_train,
                 h_t_gt=h_t_gt,
+                MRE_rel=MRE_rel,
+                MRE_con=MRE_con,
+                MRE_sca=MRE_sca,
+                RE_ds=RE_ds,
+                eval_iters=eval_iters,
                 tap_delays=tap_delays,
                 num_paths=num_paths
                 )

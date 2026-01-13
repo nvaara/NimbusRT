@@ -10,6 +10,10 @@ This branch contains the implementation for the paper "Differentiable High-Perfo
 3. Place the models in the Examples folder. This folder contains the scripts to reproduce results.
 3. To evaluate performance, run corridor.py with various max_depth in nrt.RTParams. Diffuse scattering can be disabled in by setting scattering=False in nrt.RTParams.
 4. To reproduce the material optimization results, run material.py.
+5. The train results can be parsed with
+```
+python read_train_stats.py train_result.npz
+```
 
 ## Installing
 
